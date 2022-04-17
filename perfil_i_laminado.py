@@ -5,21 +5,51 @@ import pandas as pd
 
 
 class PerfilILaminado(PerfilDeAço):
-    perfis = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1)
+    """
+    Esta classe define um perfil de aço do tipo I laminado (W, H, HP).
+
+    Parameter
+    ----------
+    nome: 'str'
+        nome da seção transversal de acordo com a tabela da IASC
+
+    material: colocar o nome do aço ou uma lista com os parametros ou um objeto da propria classe material
+
+    """
+
+    perfis_W = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1).iloc[1:283, 84:]
+    perfis_Hp = db2 = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1).iloc[329:351, 84:]
+    perfis = pd.concat([perfis_W, perfis_Hp])
 
     def __init__(self, nome, material):
 
-        self.ht = ht
-        self.bf = bf
-        self.tf = tf
-        self.tw = tw
-        self.r = r
+        perfil = self.perfis[self.perfis['EDI_Std_Nomenclature.1'] == nome]
+
+        self.ht = float(perfil['d.1'])
+        self.bf = float(perfil['bf.1'])
+        self.tf = float(perfil['tf.1'])
+        self.tw = float(perfil['tw.1'])
+        self.r = float(perfil['kdes.1']) - self.tf
+
+        A = float(perfil['A.1'])
+        Ix = float(perfil['Ix.1']) * 1E6
+        Iy = float(perfil['Iy.1']) * 1E6
+        J = float(perfil['J.1']) * 1E3
+        Wx = float(perfil['Sx.1']) * 1E3
+        Wy = float(perfil['Sy.1']) * 1E3
+        Zx = float(perfil['Zx.1']) * 1E3
+        Zy = float(perfil['Zy.1']) * 1E3
+        Cw = float(perfil['Cw.1']) * 1E9
+
+        xo = 0
+        yo = 0
 
         simetria = [True, True]
+
         super().__init__(A, Ix, Iy, J, Wx, Wy, Zx, Zy, xo, yo, Cw, material, simetria)
 
         self.esb_alma = self.h / self.tw
-        self.esb_mesa = self.bf / (2 * self.bf)
+        self.esb_mesa = self.bf / (2 * self.tf)
 
     @property
     def hw(self):
@@ -58,7 +88,7 @@ class PerfilILaminado(PerfilDeAço):
         tensao = self.material.fy * frc
         ca = 0.34
 
-        bef = 1.92 * self.tw * sqrt(self.material.E / tensao) *\
+        bef = 1.92 * self.tw * sqrt(self.material.E / tensao) * \
               (1 - ca / self.esb_alma * sqrt(self.material.E / tensao))
 
         bef = bef if bef < self.h else self.h
@@ -80,15 +110,14 @@ class PerfilILaminado(PerfilDeAço):
 
     # CORTANTE EM X
     def kv_Vrdx(self, a=None):
-        if a is None or a / self.h > 3 or a / self.h > (260 / (self.h / self.tw)) ** 2:
-            kv = 5
-        else:
-            kv = 5 + 5 / (a / self.h) ** 2
-        return kv
+        return 1.2
 
     # CORTANTE EM Y
     def kv_Vrdy(self, a=None):
-        return 1.2
+        if a is None or a / self.h > 3 or a / self.h > (260 / (self.h / self.tw)) ** 2:
+            return 5
+        else:
+            return 5 + 5 / (a / self.h) ** 2
 
     # MOMENTO EM X
     # ------------
@@ -131,29 +160,29 @@ class PerfilILaminado(PerfilDeAço):
     # Estado Limite FLM
 
     def par_esbeltez_limite_Mrdx_FLM(self):
-        return 0.38 * self.raiz_E_fy, 0.83 * sqrt(1/0.7) * self.raiz_E_fy
+        return 0.38 * self.raiz_E_fy, 0.83 * sqrt(1 / 0.7) * self.raiz_E_fy
 
     def Mrx_FLM(self):
         return 0.7 * self.material.fy * self.Wx
 
     def Mcrx_FLM(self):
-        return 0.69 * self.material.e * self.Wx / self.esb_mesa ** 2
+        return 0.69 * self.material.E * self.Wx / self.esb_mesa ** 2
 
     def Mnx_FLM(self):
 
         elp, elr = self.par_esbeltez_limite_Mrdx_FLM()
 
-        if self.esb_alma < elp:
+        if self.esb_mesa < elp:
             return self.Mplx
-        if elp < self.esb_alma < elr:
-            return self.Mplx - (self.Mplx - self.Mrx_FLM()) * (self.esb_alma - elp) / (elr - elp)
-        elif self.esb_alma > elr:
+        if elp < self.esb_mesa < elr:
+            return self.Mplx - (self.Mplx - self.Mrx_FLM()) * (self.esb_mesa - elp) / (elr - elp)
+        elif self.esb_mesa > elr:
             return self.Mcrx_FLM()
 
     # Estado Limite FLA
 
     def par_esbeltez_limite_Mrdx_FLA(self):
-        return 0.38 * self.raiz_E_fy, 0.5 * self.raiz_E_fy
+        return 3.76 * self.raiz_E_fy, 5.7 * self.raiz_E_fy
 
     def Mrx_FLA(self):
         return self.material.fy * self.Wx
@@ -162,7 +191,7 @@ class PerfilILaminado(PerfilDeAço):
 
         elp, elr = self.par_esbeltez_limite_Mrdx_FLA()
 
-        if self.esb_alma > elp:
+        if self.esb_alma < elp:
             return self.Mplx
         elif elp < self.esb_alma < elr:
             return self.Mplx - (self.Mplx - self.Mrx_FLA()) * (self.esb_alma - elp) / (elr - elp)
@@ -175,25 +204,25 @@ class PerfilILaminado(PerfilDeAço):
 
     # Estado Limite FLM
     def par_esbeltez_limite_Mrdy_FLM(self):
-        return 0.38 * self.raiz_E_fy, 0.83 * sqrt(1/0.7) * self.raiz_E_fy
+        return 0.38 * self.raiz_E_fy, 0.83 * sqrt(1 / 0.7) * self.raiz_E_fy
 
     def Mry_FLM(self):
         return 0.70 * self.material.fy * self.Wy
 
     def Mcry_FLM(self):
-        return 0.69 * self.material.e / self.esb_mesa ** 2 * self.Wy
+        return 0.69 * self.material.E / self.esb_mesa ** 2 * self.Wy
 
     def Mny_FLM(self):
 
         elp, elr = self.par_esbeltez_limite_Mrdy_FLM()
 
-        if self.esb_mesa > elp:
+        if self.esb_mesa < elp:
             return self.Mply
         elif elp < self.esb_mesa < elr:
             return self.Mply - (self.Mply - self.Mry_FLM()) * (self.esb_mesa - elp) / (elr - elp)
-        elif self.esb_mesa > elp:
+        elif self.esb_mesa > elr:
             return self.Mcry_FLM
 
     # Estado Limite FLA
-    def Mrdy_FLA(self):
+    def Mny_FLA(self):
         return self.Mply

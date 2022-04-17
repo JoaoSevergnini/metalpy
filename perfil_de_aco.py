@@ -4,6 +4,7 @@ from secao import SecaoGenerica
 
 class PerfilDeAço(SecaoGenerica):
     """
+
     Esta classe define um seção tranversal de barra de formato genérico
     de acordo com suas propriedades geométricas e seu material.
 
@@ -137,7 +138,7 @@ class PerfilDeAço(SecaoGenerica):
             indice de esbeltez reduzido
         """
         Ne = self.Ne(klx, kly, klz)
-        ier = sqrt(Q * self.A * self.material.fy) / Ne
+        ier = sqrt(Q * self.A * self.material.fy / Ne)
         return ier
 
     def fator_reducao_compressao(self, ier):
@@ -304,7 +305,7 @@ class PerfilDeAço(SecaoGenerica):
 
     # EM X
     # -------------
-    def kv_Vrdx(self, a):
+    def kv_Vrdx(self, a=None):
         """
         Retorna o valor do coeficiente kv do perfil determinação da força
         resistênte ao corte na direção x.
@@ -324,7 +325,7 @@ class PerfilDeAço(SecaoGenerica):
         """
         raise NotImplementedError
 
-    def Vrdx_NBR8800(self, a, gama_a1=1.1):
+    def Vrdx_NBR8800(self, a=None, gama_a1=1.1):
         """
         Método que determina a força cortante resistente de cálculo na
         direção X do perfil de acordo com a NBR8800:2008.
@@ -363,7 +364,7 @@ class PerfilDeAço(SecaoGenerica):
 
     # CORTANTE EM Y
     # -------------
-    def kv_Vrdy(self, a):
+    def kv_Vrdy(self, a=None):
         """
         Retorna o valor do coeficiente kv do perfil para determinação da
         força resistênte ao corte na direção y.
@@ -383,7 +384,7 @@ class PerfilDeAço(SecaoGenerica):
         """
         raise NotImplementedError
 
-    def Vrdy_NBR8800(self, a, gama_a1=1.1):
+    def Vrdy_NBR8800(self, a=None, gama_a1=1.1):
 
         """
         Método que determina a força cortante resistente de cálculo na
@@ -636,7 +637,7 @@ class PerfilDeAço(SecaoGenerica):
         return self.Zy * self.material.fy
 
     # Estado Limite FLT
-    def indice_esbeltex_Y(self, Lb):
+    def indice_esbeltez_Y(self, Lb):
         """
         Retorna o indice de esbeltez de uma barra de comprimento destravado Lb
         formado pelo perfil em relação ao eixo Y
