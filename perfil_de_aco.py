@@ -1,5 +1,6 @@
 from math import sqrt
 from secao import SecaoGenerica
+from material import Material
 
 
 class PerfilDeAço(SecaoGenerica):
@@ -25,9 +26,8 @@ class PerfilDeAço(SecaoGenerica):
     J: 'float'
         constante de torção da seção em relação ao centróide da seção
 
-    material: 'Material'
-        material que compõe a seção em relação ao eixo X (horizontal)
-        que passa pelo centroide da seção.
+    material: 'Material', 'list', 'dict'
+        material que compõe a seção.
 
     Wx: 'float'
         módulo elástico do perfil em relação ao eixo X (horizontal)
@@ -49,11 +49,16 @@ class PerfilDeAço(SecaoGenerica):
     Cw: 'float'
         constante de empenamento do pefil
 
-    simetria:
+    simetria: 'list'
         indica se o perfil apresenta eixos de simetria
     """
 
     def __init__(self, A, Ix, Iy, J, Wx, Wy, Zx, Zy, xo, yo, Cw, material, simetria):
+
+        if isinstance(material, list):
+            material = Material(*material)
+        if isinstance(material, dict):
+            material = Material(**material)
 
         super().__init__(A, Ix, Iy, J, material, Wx, Wy, xo, yo, Cw, simetria)
 

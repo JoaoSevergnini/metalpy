@@ -28,17 +28,17 @@ class SecaoGenerica:
         material que compõe a seção em relação ao eixo X (horizontal)
         que passa pelo centroide da seção.
 
-    Wx: 'float' (default: None)
+    Wx: 'float', opcional
         módulo elástico da seção em relação ao eixo X (horizontal)
 
-    Wy: 'float' (default: None)
+    Wy: 'float', opcional
         módulo elástico da seção em relação ao eixo Y (Vertical)
 
-    xo: 'float' (default: None)
+    xo: 'float', opcional
         coordenada x do centro de corte da seção trasnversal em relação ao
         centróide da seção
 
-    yo: 'float' (default: None)
+    yo: 'float', opcional
         coordenada y do centro de corte da seção trasnversal em relação ao
         centróide da seção
 

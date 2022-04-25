@@ -13,8 +13,8 @@ class PerfilILaminado(PerfilDeAço):
     nome: 'str'
         nome da seção transversal de acordo com a tabela da IASC
 
-    material: colocar o nome do aço ou uma lista com os parametros ou um objeto da propria classe material
-
+    material: Material, list, dict
+        material ou propriedades do aço que compõe o perfil
     """
 
     perfis_W = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1).iloc[1:283, 84:]

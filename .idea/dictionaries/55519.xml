@@ -3,17 +3,29 @@
     <words>
       <w>acordo</w>
       <w>anexo</w>
+      <w>apresenta</w>
       <w>barra</w>
       <w>barras</w>
       <w>cada</w>
       <w>calcular</w>
+      <w>carga</w>
+      <w>centro</w>
+      <w>centroide</w>
+      <w>centróide</w>
+      <w>cisalhamento</w>
       <w>classe</w>
       <w>coeficiente</w>
       <w>comprimento</w>
+      <w>compõe</w>
       <w>conforme</w>
       <w>consta</w>
+      <w>constante</w>
+      <w>coordenada</w>
       <w>correspondente</w>
       <w>cortante</w>
+      <w>corte</w>
+      <w>critica</w>
+      <w>crítica</w>
       <w>cálculo</w>
       <w>deste</w>
       <w>destravado</w>
@@ -21,11 +33,16 @@
       <w>determinado</w>
       <w>deve</w>
       <w>eixo</w>
+      <w>eixos</w>
       <w>elasticidade</w>
       <w>elástica</w>
+      <w>elástico</w>
+      <w>empenamento</w>
       <w>esbeltez</w>
       <w>escoamento</w>
       <w>especificas</w>
+      <w>específica</w>
+      <w>específico</w>
       <w>estado</w>
       <w>este</w>
       <w>está</w>
@@ -33,6 +50,7 @@
       <w>flambagem</w>
       <w>fletidas</w>
       <w>fletor</w>
+      <w>flexão</w>
       <w>formado</w>
       <w>formato</w>
       <w>força</w>
@@ -40,8 +58,11 @@
       <w>generica</w>
       <w>genérico</w>
       <w>geométricas</w>
+      <w>giração</w>
       <w>implementado</w>
+      <w>indica</w>
       <w>indice</w>
+      <w>inércia</w>
       <w>início</w>
       <w>isotrópico</w>
       <w>kdes</w>
@@ -59,13 +80,16 @@
       <w>método</w>
       <w>módulo</w>
       <w>ncrd</w>
+      <w>opcional</w>
       <w>parâmetro</w>
       <w>parâmetros</w>
+      <w>passa</w>
       <w>pelo</w>
       <w>perfil</w>
       <w>perfis</w>
       <w>plastificação</w>
       <w>propriedades</w>
+      <w>raio</w>
       <w>raiz</w>
       <w>relativos</w>
       <w>relação</w>
@@ -75,6 +99,7 @@
       <w>respectivamente</w>
       <w>responsável</w>
       <w>retorna</w>
+      <w>retornar</w>
       <w>ruptura</w>
       <w>secao</w>
       <w>seção</w>
@@ -83,9 +108,11 @@
       <w>tensao</w>
       <w>tensão</w>
       <w>tipo</w>
+      <w>torno</w>
       <w>torção</w>
       <w>transversal</w>
       <w>tranversal</w>
+      <w>trasnversal</w>
       <w>verificações</w>
       <w>vrdx</w>
       <w>vrdy</w>
