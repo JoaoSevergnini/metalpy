@@ -2,20 +2,27 @@
   <dictionary name="55519">
     <words>
       <w>acordo</w>
+      <w>aisc</w>
       <w>anexo</w>
       <w>apresenta</w>
+      <w>apresentam</w>
       <w>barra</w>
       <w>barras</w>
       <w>cada</w>
       <w>calcular</w>
       <w>carga</w>
+      <w>catalogados</w>
       <w>centro</w>
       <w>centroide</w>
       <w>centróide</w>
       <w>cisalhamento</w>
       <w>classe</w>
+      <w>coef</w>
       <w>coeficiente</w>
+      <w>compressao</w>
+      <w>compressão</w>
       <w>comprimento</w>
+      <w>comprimentos</w>
       <w>compõe</w>
       <w>conforme</w>
       <w>consta</w>
@@ -27,24 +34,32 @@
       <w>critica</w>
       <w>crítica</w>
       <w>cálculo</w>
+      <w>definição</w>
       <w>deste</w>
       <w>destravado</w>
       <w>determina</w>
       <w>determinado</w>
       <w>deve</w>
+      <w>direção</w>
+      <w>efetiva</w>
       <w>eixo</w>
       <w>eixos</w>
       <w>elasticidade</w>
+      <w>elemento</w>
+      <w>elementos</w>
       <w>elástica</w>
       <w>elástico</w>
       <w>empenamento</w>
       <w>esbeltez</w>
       <w>escoamento</w>
+      <w>esforço</w>
       <w>especificas</w>
+      <w>especifico</w>
       <w>específica</w>
       <w>específico</w>
       <w>estado</w>
       <w>este</w>
+      <w>estrutural</w>
       <w>está</w>
       <w>fator</w>
       <w>flambagem</w>
@@ -67,6 +82,7 @@
       <w>isotrópico</w>
       <w>kdes</w>
       <w>laminado</w>
+      <w>laminados</w>
       <w>limite</w>
       <w>limites</w>
       <w>mcrx</w>
@@ -75,15 +91,21 @@
       <w>minoração</w>
       <w>momento</w>
       <w>mplx</w>
+      <w>mply</w>
       <w>mrdx</w>
       <w>mrdy</w>
       <w>método</w>
+      <w>métodos</w>
       <w>módulo</w>
       <w>ncrd</w>
+      <w>nexz</w>
+      <w>neyz</w>
+      <w>ntrd</w>
       <w>opcional</w>
       <w>parâmetro</w>
       <w>parâmetros</w>
       <w>passa</w>
+      <w>pela</w>
       <w>pelo</w>
       <w>perfil</w>
       <w>perfis</w>
@@ -91,29 +113,40 @@
       <w>propriedades</w>
       <w>raio</w>
       <w>raiz</w>
+      <w>reducao</w>
+      <w>reduzido</w>
       <w>relativos</w>
       <w>relação</w>
       <w>resistente</w>
       <w>resistência</w>
+      <w>resistênte</w>
       <w>resitente</w>
+      <w>resitência</w>
       <w>respectivamente</w>
       <w>responsável</w>
       <w>retorna</w>
+      <w>retornando</w>
       <w>retornar</w>
       <w>ruptura</w>
       <w>secao</w>
       <w>seção</w>
       <w>simetria</w>
+      <w>simetrica</w>
+      <w>solicitados</w>
       <w>suas</w>
       <w>tensao</w>
       <w>tensão</w>
       <w>tipo</w>
+      <w>todos</w>
       <w>torno</w>
       <w>torção</w>
       <w>transversal</w>
       <w>tranversal</w>
       <w>trasnversal</w>
+      <w>tração</w>
       <w>verificações</w>
+      <w>vplx</w>
+      <w>vply</w>
       <w>vrdx</w>
       <w>vrdy</w>
       <w>área</w>
