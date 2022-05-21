@@ -877,10 +877,6 @@ class PerfilAcoNBR8800(PerfilAco):
         Retorna o momento fletor em X correspondente ao início de escoamento da seção,
         para o estado limite de flambagem lateral com torção.
         """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
-
         return self.Mrx * self.c_tensao_res
 
     def Mcrx_FLT(self, Cb, Lb):
@@ -895,10 +891,6 @@ class PerfilAcoNBR8800(PerfilAco):
             comprimento destravado da barra
 
         """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
-
         return Cb * self.Mex(Lb, Lb)
 
     def Mnx_FLT(self, Cb, Lb):
@@ -919,9 +911,11 @@ class PerfilAcoNBR8800(PerfilAco):
 
         """
 
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
+        # Este método está implementado para os perfis apresentados
+        # na tabela G1 da do anexo G da NBR8800 para os perfis que
+        # não estão contidos na tabela esse método deve ser sobrescrito,
+        # caso o perfil não apresente FLT como um estado limite esse método
+        # deve ser sobrescrito retornando o momento de plastificação (Mpl)
 
         esb = self.indice_esbeltez_X(Lb)
         elp, elr = self.par_esbeltez_limite_Mrdx_FLT()
@@ -965,9 +959,11 @@ class PerfilAcoNBR8800(PerfilAco):
         Return
         ------
         """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
+        # Este método está implementado para os perfis apresentados
+        # na tabela G1 da do anexo G da NBR8800 para os perfis que
+        # não estão contidos na tabela esse método deve ser sobrescrito,
+        # caso o perfil não apresente FLM como um estado limite esse método
+        # deve ser sobrescrito retornando o momento de plastificação (Mpl)
 
         elp, elr = self.par_esbeltez_limite_Mrdx_FLM()
 
@@ -1008,6 +1004,13 @@ class PerfilAcoNBR8800(PerfilAco):
         Return
         ------
         """
+
+        # Este método está implementado para os perfis apresentados
+        # na tabela G1 da do anexo G da NBR8800 para os perfis que
+        # não estão contidos na tabela esse método deve ser sobrescrito,
+        # caso o perfil não apresente FLA como um estado limite esse método
+        # deve ser sobrescrito retornando o momento de plastificação (Mpl)
+
         elp, elr = self.par_esbeltez_limite_Mrdx_FLA()
 
         if self.esb_alma < elp:
