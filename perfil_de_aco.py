@@ -1,6 +1,6 @@
 from math import sqrt
 from material import Material
-from perfil_estrutural import PerfilEstrutural
+from perfis import PerfilEstrutural
 import pandas as pd
 import abc
 
@@ -917,7 +917,7 @@ class PerfilAcoNBR8800(PerfilAco):
         # caso o perfil não apresente FLT como um estado limite esse método
         # deve ser sobrescrito retornando o momento de plastificação (Mpl)
 
-        esb = self.indice_esbeltez_X(Lb)
+        esb = self.indice_esbeltez(Lb, Lb)[0]
         elp, elr = self.par_esbeltez_limite_Mrdx_FLT()
 
         if esb < elp:

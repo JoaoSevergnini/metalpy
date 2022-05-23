@@ -4,6 +4,7 @@
       <w>aalma</w>
       <w>acordo</w>
       <w>aisc</w>
+      <w>altura</w>
       <w>amesa</w>
       <w>anexo</w>
       <w>apresenta</w>
@@ -15,6 +16,7 @@
       <w>cada</w>
       <w>caixao</w>
       <w>calcular</w>
+      <w>capacidade</w>
       <w>carga</w>
       <w>catalogados</w>
       <w>centro</w>
@@ -30,9 +32,11 @@
       <w>comprimentos</w>
       <w>compõe</w>
       <w>conforme</w>
+      <w>consideração</w>
       <w>consta</w>
       <w>constante</w>
       <w>coordenada</w>
+      <w>coordenadas</w>
       <w>correspondente</w>
       <w>cortante</w>
       <w>corte</w>
@@ -45,7 +49,9 @@
       <w>determina</w>
       <w>determinado</w>
       <w>deve</w>
+      <w>devido</w>
       <w>direção</w>
+      <w>distância</w>
       <w>efetiva</w>
       <w>eixo</w>
       <w>eixos</w>
@@ -54,7 +60,10 @@
       <w>elementos</w>
       <w>elástica</w>
       <w>elástico</w>
+      <w>elásticos</w>
       <w>empenamento</w>
+      <w>enrijecedores</w>
+      <w>entre</w>
       <w>esbeltez</w>
       <w>escoamento</w>
       <w>esforço</w>
@@ -79,6 +88,7 @@
       <w>generica</w>
       <w>genérico</w>
       <w>geométricas</w>
+      <w>geométrico</w>
       <w>giração</w>
       <w>implementado</w>
       <w>indica</w>
@@ -96,6 +106,7 @@
       <w>mecânicas</w>
       <w>minoração</w>
       <w>momento</w>
+      <w>momentos</w>
       <w>monossimétrico</w>
       <w>mplx</w>
       <w>mply</w>
@@ -104,6 +115,7 @@
       <w>método</w>
       <w>métodos</w>
       <w>módulo</w>
+      <w>módulos</w>
       <w>ncrd</w>
       <w>nexz</w>
       <w>neyz</w>
@@ -117,11 +129,14 @@
       <w>perfil</w>
       <w>perfis</w>
       <w>plastificação</w>
+      <w>plásticos</w>
+      <w>procedimento</w>
       <w>propriedades</w>
       <w>raio</w>
       <w>raiz</w>
       <w>reducao</w>
       <w>reduzido</w>
+      <w>redução</w>
       <w>relativos</w>
       <w>relação</w>
       <w>resistente</w>
@@ -140,6 +155,7 @@
       <w>simetria</w>
       <w>simetrica</w>
       <w>soldado</w>
+      <w>soldados</w>
       <w>solicitados</w>
       <w>suas</w>
       <w>tdes</w>
@@ -161,6 +177,7 @@
       <w>vrdx</w>
       <w>vrdy</w>
       <w>área</w>
+      <w>áreas</w>
       <w>último</w>
     </words>
   </dictionary>

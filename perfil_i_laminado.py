@@ -86,7 +86,7 @@ class PerfilILaminadoNBR8800(PerfilAcoNBR8800):
     def fator_Qa(self, frc):
 
         if self.esb_alma > self.par_esbeltez_limite_AA_Ncrd():
-            return self.A
+            return 1
         else:
             tensao = self.material.fy * frc
             ca = 0.34

@@ -84,6 +84,8 @@ class PerfilEstrutural(SecaoGenerica):
         self.simetria = simetria
         self.tipo = tipo
 
+        self.raiz_E_fy = sqrt(self.material.E / self.material.fy)
+        self.raiz_fy_E = sqrt(self.material.fy / self.material.E)
 
     @property
     def rx(self):
@@ -175,6 +177,7 @@ class PerfilEstrutural(SecaoGenerica):
         return Lbx / self.ry, Lby / self.rx
 
     def par_estabilidade(self, klx, kly, klz):
+
         """
         Método que determina as cargas críticas de flambagem e o momento de fletor de flambagem
         elástica com flexo torção para perfis monossimétricos.
@@ -211,8 +214,7 @@ class PerfilEstrutural(SecaoGenerica):
                    (1 - sqrt(1 - 4 * Ney * Nez * (1 - (self.yo / self.ro) ** 2) / (Ney + Nez) ** 2))
 
             Ne = min(Nex, Neyz)
-            fe = Ne / self.A
-            Me = self.ro * sqrt(self.Nex(klx) * self.Nez(klz))
+            Me = self.ro * sqrt(Nex * Nez)
 
         elif not self.bi_simetrica and self.simetria_x:
 
@@ -220,7 +222,7 @@ class PerfilEstrutural(SecaoGenerica):
                    (1 - sqrt(1 - 4 * Nex * Nez * (1 - (self.xo / self.ro) ** 2) / (Nex + Nez) ** 2))
 
             Ne = min(Ney, Nexz)
-            Me = self.ro * sqrt(self.Nex(klx) * self.Nez(klz))
+            Me = self.ro * sqrt(Nex * Nez)
 
         else:
             pass
@@ -228,217 +230,6 @@ class PerfilEstrutural(SecaoGenerica):
         fe = Ne / self.A
 
         return {'Ne': Ne, 'fe': fe, 'Nex': Nex, 'Ney': Ney, 'Nez': Nez, 'Nexz': Nexz, 'Neyz': Neyz, 'Me': Me}
-
-    def Nex(self, klx):
-        """
-        Método que determina a carga critica de flambagem a flexão em torno do eixo X
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo X
-
-        Return
-        -----
-        Nex: 'float'
-            carga crítica de flambagem por flexão em relação ao eixo X
-        """
-        Nex = pi ** 2 * self.material.E * self.Ix / (klx ** 2)
-        return Nex
-
-    def Ney(self, kly):
-        """
-        Método que determina a carga critica de flambagem a flexão em torno do eixo X
-
-        Parameter
-        ---------
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo Y
-
-        Return
-        -----
-        Ney: 'float'
-            carga crítica de flambagem por flexão em relação ao eixo Y
-        """
-        Ney = pi ** 2 * self.material.E * self.Iy / (kly ** 2)
-        return Ney
-
-    def Nez(self, klz):
-        """
-        Método que determina a carga critica de flambagem por torção em torno do eixo longitudinal Z
-
-        Parameter
-        ---------
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Nez: 'float'
-            carga crítica de flambagem por torção em relação ao eixo longitudinal Z
-        """
-        Nez = (pi ** 2 * self.material.E * self.Cw / (klz ** 2) + self.material.G * self.J) / self.ro ** 2
-        return Nez
-
-    def Neyz(self, kly, klz):
-        """
-        Método que determina a carga critica de flambagem elástica por flexo-torção para perfis monossimetrico
-        com simetria em relação ao eixo Y
-
-        Parameter
-        ---------
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo longitudinal Z
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Neyz: 'float'
-            carga crítica de flambagem elástica por flexo-torção
-        """
-        if self.simetria_y:
-            Ney = self.Ney(kly)
-            Nez = self.Nez(klz)
-            Neyz = (Ney + Nez) / (2 * (1 - (self.yo / self.ro) ** 2)) * \
-                   (1 - sqrt(1 - 4 * Ney * Nez * (1 - (self.yo / self.ro) ** 2) / (Ney + Nez) ** 2))
-            return Neyz
-        else:
-            return None
-
-    def Nexz(self, klx, klz):
-        """
-        Método que determina a carga critica de flambagem elástica por flexo-torção para perfis monossimetrico
-        com simetria em relação ao eixo Y
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo longitudinal X
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Nexz: 'float'
-            carga crítica de flambagem elástica por flexo-torção
-        """
-        if self.simetria_x:
-            Nex = self.Nex(klx)
-            Nez = self.Nez(klz)
-            Nexz = (Nex + Nez) / (2 * (1 - (self.xo / self.ro) ** 2)) * \
-                   (1 - sqrt(1 - 4 * Nex * Nez * (1 - (self.xo / self.ro) ** 2) / (Nex + Nez) ** 2))
-            return Nexz
-        else:
-            return None
-
-    def __Ne_bissimetria(self, klx, kly, klz):
-        """
-        Método que determina a carga critica de flambagem da barra
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo x
-
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo Y
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Ne: 'float'
-            carga crítica de flambagem
-        """
-        return min(self.Nex(klx), self.Ney(kly), self.Nez(klz))
-
-    def __Ne_monossimetrica_x(self, klx, kly, klz):
-        """
-        Método que determina a carga critica de flambagem da barra
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo x
-
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo Y
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Ne: 'float'
-            carga crítica de flambagem
-        """
-        return min(self.Ney(kly), self.Nexz(klx, klz))
-
-    def __Ne_monossimetrica_y(self, klx, kly, klz):
-        """
-        Método que determina a carga critica de flambagem da barra
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo x
-
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo Y
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Ne: 'float'
-            carga crítica de flambagem
-        """
-        return min(self.Nex(klx), self.Neyz(kly, klz))
-
-    def __Ne_assimetrica(self, klx, kly, klz):
-        """
-        Método que determina a carga critica de flambagem da barra
-
-        Parameter
-        ---------
-        klx:'float'
-            comprimento de flambagem por flexão em relação ao eixo x
-
-        kly:'float'
-            comprimento de flambagem por flexão em relação ao eixo Y
-
-        klz:'float'
-            comprimento de flambagem por torção em relação ao eixo longitudinal Z
-
-        Return
-        -----
-        Ne: 'float'
-            carga crítica de flambagem
-        """
-        pass
-
-    def fe(self, klx, kly, klz):
-        """
-        Método que determina a tensão critica de flambagem
-        """
-        return self.Ne(klx, kly, klz) / self.A
-
-    def Mex(self, kly, klz):
-        """
-        Método que determina o momento fletor de flambagem lateral com torção em regime elástico
-        """
-        return self.ro * sqrt(self.Ney(kly) * self.Nez(klz))
-
-    def Mey(self, klx, klz):
-        """
-        Método que determina o momento fletor de flambagem lateral com torção em regime elástico
-        """
-        return self.ro * sqrt(self.Nex(klx) * self.Nez(klz))
 
 
 class PerfilI(PerfilEstrutural):
@@ -476,7 +267,7 @@ class PerfilI(PerfilEstrutural):
         self.esb_alma = self.dl / tw
 
         simetria = [True, True]
-        simetria[1] = False if bfs == bfi or tfi == tfs else True
+        simetria[1] = False if bfs != bfi or tfi != tfs else True
 
         super().__init__(**self.prop_geo(), material=material, simetria=simetria, tipo='I SOLDADO')
 
@@ -488,8 +279,8 @@ class PerfilI(PerfilEstrutural):
         monossimétrico em relação ao eixo Y
         """
 
-        # Áreas
-        # -----
+        # Área(A)
+        # -------
 
         Am_sup = self.bfs * self.tfs
         Am_inf = self.tfi * self.bfi
@@ -497,40 +288,47 @@ class PerfilI(PerfilEstrutural):
 
         A = Am_sup + Am_inf + Aalma
 
-        # Altura do centro geométrico da seção
-        # -------------------------------------
+        # Altura do centro geométrico da seção (ycg)
+        # ------------------------------------------
 
         ycg = (Am_inf * self.tfi / 2 + Aalma * (self.tfi + self.dl / 2) + Am_sup * (self.d - self.tfs / 2)) / A
 
-        # Momentos de inércia e constante de torção
-        # -------------------------------------------
+        # Momentos de inércia e constante de torção (Ix, Iy e J)
+        # ------------------------------------------------------
 
-        Ix = self.bfi * self.tfi ** 3 / 12 + Am_inf * (ycg - self.tfi / 2) ** 2 + \
-             self.bfs * self.tfs ** 3 / 12 + Am_sup * (ycg - (self.d - self.tfs / 2)) ** 2 + \
-             self.tw * self.dl ** 2 / 12 + Aalma * (ycg - self.d / 2) ** 2
+        I1x = self.bfs * self.tfs ** 3 / 12
+        I2x = self.bfi * self.tfi ** 3 / 12
+        Iax = self.tw * self.dl ** 3 / 12
 
-        Iy = self.tfi * self.bfi ** 3 / 12 + \
-             self.tfs * self.bfs ** 3 / 12 + \
-             self.dl * self.tw ** 3 / 12
+        I1y = self.tfs * self.bfs ** 3 / 12
+        I2y = self.tfi * self.bfi ** 3 / 12
+        Iay = self.dl * self.tw ** 3 / 12
 
-        J = 1 / 3 * (self.bfs * self.tfi ** 3 + self.bfi * self.tfi ** 3 +
-                     (self.d - self.tfi / 2 - self.tfs / 2) ** 3)
+        d1y = ycg - (self.d - self.tfs / 2)
+        d2y = ycg - self.tfi / 2
+        day = ycg - self.d / 2
 
-        # Módulos elásticos
-        # -----------------
+        Ix = I2x + Am_inf * d2y ** 2 + \
+             I1x + Am_sup * d1y ** 2 + \
+             Iax + Aalma * day ** 2
+
+        Iy = I2y + I1y + Iay
+        J = 1 / 3 * (self.bfs * self.tfs ** 3 + self.bfi * self.tfi ** 3 +
+                     (self.d - self.tfi / 2 - self.tfs / 2) * self.tw ** 3)
+
+        # Módulos elásticos (Wxs, Wxi, Wys e Wyi)
+        # --------------------------------------
 
         Wxs = Ix / ycg
-
         Wxi = Ix / (self.d - ycg)
+        Wys = Wyi = 2 * Iy / max(self.bfi, self.bfs)
 
-        Wys = Wyi = Iy / max(self.bfi, self.bfs)
-
-        # Módulos plásticos
-        # -----------------
+        # Módulos plásticos (Zx e Zy)
+        # -------------------------
 
         if Am_sup > Aalma + Am_inf:
 
-            ypl = self.d - (Aalma + Am_inf + self.bfs * self.tfs) / 2 * self.bfs
+            ypl = self.d - (Aalma + Am_inf + Am_sup) / (2 * self.bfs)
 
             ys = (ypl + self.d) / 2
 
@@ -539,7 +337,7 @@ class PerfilI(PerfilEstrutural):
 
         elif Am_inf > Aalma + Am_sup:
 
-            ypl = (Aalma + Am_sup + self.bfi * self.tfi) / 2 * self.bfi
+            ypl = (Aalma + Am_sup + self.bfi * self.tfi) / (2 * self.bfi)
 
             ys = (Am_sup * (self.d - self.tfs / 2) + Aalma * (self.tfi + self.dl / 2) + self.bfi * (
                     ypl + self.tfi) / 2) / \
@@ -548,39 +346,38 @@ class PerfilI(PerfilEstrutural):
             yi = (self.tfi - ypl) / 2
 
         else:
-            ypl = self.dl + self.tfi - (Am_inf - Am_sup + self.tw * self.dl) / 2 * self.tw
+            ypl = self.dl + self.tfi - (Am_inf - Am_sup + self.tw * self.dl) / (2 * self.tw)
 
             ys = (Am_sup * (self.d - self.tfs / 2) + (Aalma - self.tw * (ypl - self.tfi)) * (
-                    ypl + self.dl + self.tfi) / 2) \
-                 / (Am_sup + (Aalma - self.tw * (ypl - self.tfi)))
+                ypl + self.dl + self.tfi) / 2) \
+                / (Am_sup + (Aalma - self.tw * (ypl - self.tfi)))
 
             yi = (Am_inf * self.tfi / 2 + self.tw * (ypl - self.tfi) * (self.tfi + ypl) / 2) \
-                 / (Am_inf + self.tw * (ypl - self.tfi))
+                / (Am_inf + self.tw * (ypl - self.tfi))
 
         Zx = A * (ys - yi) / 2
+        Zy = (Am_inf * self.bfi + Aalma * self.tw + Am_sup * self.bfs) / 4
 
-        Zy = A * (Am_inf * self.bfi + Aalma * self.tw + Am_sup * self.tfs) / 4
-
-        # Área de cisalhamento
-        # -------------------
+        # Áreas de cisalhamento (Awx e Awy)
+        # ---------------------------------
 
         Awx = self.dl * self.tw
-
         Awy = self.tfi * self.bfi + self.tfs * self.bfs
 
-        # Cordenadas do centro de cisalhamento em relação ao centro geométrico
-        # ---------------------------------------------------------------------
+        # Coordenadas do centro de cisalhamento em relação ao centro geométrico (xo e yo)
+        # ---------------------------------------------------------------------------
 
         xo = 0
 
-        yo = (self.d - self.tfi / 2 + self.tfs / 2) * self.tfi * self.bfi ** 3 / 12 \
-             + self.tfs * self.bfs ** 3 / 12
+        h = self.d - self.tfi / 2 + self.tfs / 2
+        ycc = (self.d - self.tfs/2) - h * I2y / (I1y + I2y)
+        yo = ycc - ycg
 
-        # Constante de empenamento
-        # ------------------------
+        # Constante de empenamento (Cw)
+        # -----------------------------
 
-        Cw = (((self.tfi + self.tfs) / 2) * (self.d - (self.tfs - self.tfs) / 2) / 12) * self.bfi ** 3 * \
-             self.bfs ** 3 / (self.bfi ** 3 + self.bfs ** 3)
+        C = (self.bfi * self.bfs) ** 3 / (self.bfi ** 3 + self.bfs ** 3)
+        Cw = C * (self.tfi + self.tfs) * h ** 2 / 24
 
         return {'A': A, 'Ix': Ix, 'Iy': Iy, 'J': J, 'Wxs': Wxs, 'Wxi': Wxi, 'Wyi': Wyi, 'Wys': Wys,
                 'Zx': Zx, 'Zy': Zy, 'Awx': Awx, 'Awy': Awy, 'xo': xo, 'yo': yo, 'Cw': Cw}
@@ -596,6 +393,7 @@ class PerfilILam(PerfilEstrutural):
     """
 
     def __init__(self, nome, material):
+
         perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
 
         self.d = float(perfil['d.1'])
@@ -603,6 +401,8 @@ class PerfilILam(PerfilEstrutural):
         self.tf = float(perfil['tf.1'])
         self.tw = float(perfil['tw.1'])
         self.r = float(perfil['kdes.1']) - self.tf
+        self.h = self.d - 2 * self.tf
+        self.dl = self.h - 2 * self.r
 
         self.esb_alma = float(perfil['h/tw.1'])
         self.esb_mesa = float(perfil['bf/2tf.1'])
@@ -615,6 +415,7 @@ class PerfilILam(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self, perfil):
+
         A = float(perfil['A.1'])
         Ix = float(perfil['Ix.1']) * 1E6
         Iy = float(perfil['Iy.1']) * 1E6
@@ -657,6 +458,7 @@ class Caixao(PerfilEstrutural):
     """
 
     def __init__(self, h, b, tw, tf, material):
+
         self.h = h
         self.b = b
         self.tw = tw
@@ -664,8 +466,8 @@ class Caixao(PerfilEstrutural):
         self.hint = self.h - 2 * tf
         self.bint = self.b - 2 * tw
 
-        self.esb_alma = (h - 2 * tf) / tw
-        self.esb_mesa = (b - 2 * tw) / tf
+        self.esb_alma = self.hint / tw
+        self.esb_mesa = self.bint / tf
 
         simetria = [True, True]
 
@@ -675,30 +477,60 @@ class Caixao(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self):
+
+        # Área (A)
+        # ---------
+
         Amesa = self.b * self.tf
         Aalma = self.hint * self.tw
 
         A = 2 * Amesa + 2 * Aalma
 
-        Ix = 2 * (self.b * self.tf ** 3 / 12 + Amesa * (self.h / 2 - self.tf / 2) ** 2 + self.tw * self.hint ** 3 / 12)
-        Iy = 2 * (self.hint * self.tw ** 3 / 12 + Aalma * (self.b / 2 - self.tw / 2) ** 2 + self.tf * self.b ** 3 / 12)
+        # Momentos de inércia e constante de torção (Ix, Iy e J)
+        # ------------------------------------------------------
+
+        Imx = self.b * self.tf ** 3 / 12
+        Iax = self.tw * self.hint ** 3 / 12
+
+        Imy = self.tf * self.b ** 3 / 12
+        Iay = self.hint * self.tw ** 3 / 12
+
+        dmy = self.h / 2 - self.tf / 2
+        dax = self.b / 2 - self.tw / 2
+
+        Ix = 2 * (Imx + Amesa * dmy ** 2 + Iax)
+        Iy = 2 * (Iay + Aalma * dax ** 2 + Imy)
+
+        # Módulos elásticos (Wxs, Wxi, Wys e Wyi)
+        # --------------------------------------
+
+        Wx = 2 * Ix / self.b
+        Wy = 2 * Iy / self.b
 
         u = 2 * (self.b + self.h - self.tw - self.tf)
         K = (self.b - self.tw) * (self.h - self.tf) * (self.tf + self.tw) / u
         J = (self.tw ** 3 + self.tf ** 3) * u / 6 + 2 * K * (self.b - self.tw) * (self.h - self.tf)
 
-        Wx = 2 * Ix / self.b
-        Wy = 2 * Iy / self.b
+        # Módulos plásticos (Zx e Zy)
+        # -------------------------
 
         Zx = (self.b * self.h ** 2 - self.bint * self.hint ** 2) / 4
         Zy = (self.h * self.b ** 2 - self.hint * self.bint ** 2) / 4
 
+        # Áreas de cisalhamento (Awy e Awx)
+        # ---------------------------------
+
         Awy = 2 * self.hint * self.tw
         Awx = 2 * self.bint * self.tf
 
-        xo = 0
+        # Centro de corte em relação ao centro geométrico (xo e yo)
+        # ---------------------------------------------------------
 
+        xo = 0
         yo = 0
+
+        # Constante de empenamento (Cw)
+        # -----------------------------
 
         Cw = 0
 
@@ -709,22 +541,18 @@ class Caixao(PerfilEstrutural):
 class TuboRet(PerfilEstrutural):
 
     def __init__(self, nome, material):
-
         perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
 
-        try:
-            self.h = float(perfil['Ht.1'])
-            self.b = float(perfil['B.1'])
-            self.esb_alma = float(perfil['h/tdes.1'])
-            self.esb_mesa = float(perfil['b/tdes.1'])
-
-        except:
-            self.h = float(perfil['OD.1'])
-            self.b = float(perfil['OD.1'])
-            self.esb_alma = float(perfil['D/t.1'])
-            self.esb_mesa = float(perfil['D/t.1'])
-
+        self.h = float(perfil['Ht.1'])
+        self.b = float(perfil['B.1'])
+        self.esb_alma = float(perfil['h/tdes.1'])
+        self.esb_mesa = float(perfil['b/tdes.1'])
         self.t = float(perfil['tdes.1'])
+        self.tw = self.t
+        self.tf = self.t
+
+        self.bint = self.b - 3 * self.t
+        self.hint = self.h - 3 * self.t
 
         simetria = [True, True]
 
@@ -762,7 +590,6 @@ class TuboRet(PerfilEstrutural):
 class TuboCir(PerfilEstrutural):
 
     def __init__(self, nome, material):
-
         self._validar_nome(nome)
 
         perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
@@ -771,7 +598,7 @@ class TuboCir(PerfilEstrutural):
         self.t = float(perfil['tdes.1'])
         self.esb = float(perfil['D/t.1'])
 
-        self.Dint = self.D - self.t
+        self.Dint = self.D - 2 * self.t
 
         simetria = [True, True]
 
