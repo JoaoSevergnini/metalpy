@@ -10,7 +10,7 @@ a norma americana *AISC360*.
 Veja o exemplo abaixo:
 
 ~~~python
-from metalpy.perfis_metalicos import **
+from metalpy.perfis import **
 from metalpy.normas import Nbr8800
 
 perfil = PerfilILam('W150X150', 'A350', norma = 'NBR8800')
