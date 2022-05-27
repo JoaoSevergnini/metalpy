@@ -28,13 +28,14 @@ class Nbr8800:
     # COMPRESSÃO
     # -----------
 
+    # Métodos auxiliares para a determinação do fator Qs de acordo com o anexo XX da NBR8800
     @staticmethod
     def _Qs_g3(perfil):
         pass
 
     @staticmethod
     def _Qs_g4(perfil):
-        """ Fator Qs para mesas de perfis laminados do tipo I, U e T """
+        """ Fator Qs para mesas de perfis do grupo 4 (laminados I, H, U e T) """
 
         elp = 0.56 * perfil.raiz_E_fy
         elr = 1.03 * perfil.raiz_E_fy
@@ -250,7 +251,7 @@ class Nbr8800:
 
         elif perfil.tipo == 'TUBO CIR':
 
-            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5/4))
+            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
             fcr2 = 0.78 * perfil.material.E / perfil.esb ** 1.5
 
             fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.material.fy else 0.6 * perfil.material.fy
@@ -316,8 +317,8 @@ class Nbr8800:
                 Vrdy = 1.24 * (elp / perfil.esb_mesa) ** 2 * (perfil.Vplx / gama_a1)
                 return Vrdy if not data else Vrdy, {'kv': kv, 'elp': elp, 'elr': elr}
 
-        else:
-            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5/4))
+        elif perfil.tipo == 'TUBO CIR':
+            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
             fcr2 = 0.78 * perfil.material.E / perfil.esb ** 1.5
 
             fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.material.fy else 0.6 * perfil.material.fy
@@ -326,156 +327,162 @@ class Nbr8800:
 
     # MOMENTO FLETOR EM X
     # ------------
+
     # Estado Limite FLT
-    def Mrx_FLT(self):
-        """
-        Retorna o momento fletor em X correspondente ao início de escoamento da seção,
-        para o estado limite de flambagem lateral com torção.
-        """
-        return self.Mrx * self.c_tensao_res
-
-    def Mcrx_FLT(self, Cb, Lb):
-        """
-        Retorna o momento fletor em X correspondente a flambagem elástica,
-        para o estado limite de flambagem lateral com torção.
-
-        Cb: 'float'
-            coeficiente Cb determinado conforme item 5.4.2.3 da NBR8800:2008
-
-        Lb: 'float'
-            comprimento destravado da barra
-
-        """
-        return Cb * self.Mex(Lb, Lb)
-
     @staticmethod
     def _Mnx_FLT(perfil, Cb, Lb):
+
         """ Determina o momento fletor resistente nominal de uma barra para o estado limite último
             de flambagem lateral com torção em relação ao eixo X"""
 
         if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'TUBO RET', 'CAIXAO', 'U SOLDADO', 'U LAMINADO'):
 
-            esb = perfil.indice_esbeltez(Lb, Lb)[1]
+            esb = perfil.indice_esbeltez(Lb, Lb)[0]
 
+            # Determinação dos parâmetros necessários para determinação do momento fletor
             if perfil.tipo in ('TUBO RET', 'CAIXAO'):
                 elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+                elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+
             else:
                 elp = 1.76 * perfil.raiz_E_fy
-
-            if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U SOLDADO', 'U LAMINADO'):
 
                 beta_1 = perfil.Wxs * Nbr8800.c_tensao_res / (perfil.material.E * perfil.J)
                 beta_2 = 1
 
                 if perfil.tipo('I LAMINADO') and not perfil.bi_simetrica:
                     alfa_y = None
-                    beta_3 = 0.45 * (perfil.d - (perfil.tfs + perfil.tfi)/2) * (alfa_y - 1) / (alfa_y + 1)
+                    beta_3 = 0.45 * (perfil.d - (perfil.tfs + perfil.tfi) / 2) * (alfa_y - 1) / (alfa_y + 1)
                     beta_2 = 5.2 * beta_1 * beta_3 + 1
 
-                elr = 1.38 * sqrt(perfil.Iy * perfil.J) / perfil.rx + perfil.J
+                # primeiro termo da equação
+                t1 = 1.38 * sqrt(perfil.Iy * perfil.J) / (perfil.rx + perfil.J + beta_1)
+                # segundo termo da equação
+                t2 = sqrt(beta_2 + sqrt(beta_2 ** 2 + 27 * perfil.Cw * beta_1) / perfil.Iy)
+                elr = t1 * t2
 
+            if esb < elp:
+                return perfil.Mplx
 
+            elif elp < esb < elr:
 
+                Mr = perfil.Mrx * 0.7 if not perfil.tipo == 'I LAMINADO' and not perfil.bi_simetrica \
+                    else min(0.7 * perfil.Wxs, 0.7 * perfil.Mr)
 
-                if esb < elp:
-                    return perfil.Mplx
-                elif elp < esb < elr:
-                    return perfil.Mplx - (perfil.Mplx - perfil.Mrx_FLT) * (esb - elp) / (elr - elp)
-                elif elr < esb:
-                    Mcrx = perfil.Mcrx_FLT(Cb, Lb)
-                    return Mcrx if Mcrx < perfil.Mplx else perfil.Mplx
+                return perfil.Mplx - (perfil.Mplx - Mr) * (esb - elp) / (elr - elp)
+
+            elif elr < esb:
+                Me = perfil.par_estabilidade()['Me']
+                return Cb * Me if Me < perfil.Mplx else perfil.Mplx
+
+        elif perfil.tipo in ('T LAMINADO', 'T SOLDADO'):
+            B = 2.3 * perfil.d * sqrt(perfil.Iy / perfil.J) / Lb
+            return pi * sqrt(perfil.EIy * perfil.GJ) * (B + sqrt(1 + B ** 2)) / Lb
 
     # Estado Limite FLM
-    def Mrx_FLM(self):
-        """
-        Retorna o momento fletor em X correspondente ao inicio de escoamento da seção,
-        para o estado limite de flambagem local da mesa.
-        """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
+    @staticmethod
+    def _Mnx_FLM(perfil):
 
-        return self.Mrx * self.c_tensao_res
-
-    def Mcrx_FLM(self):
-        """
-        Retorna o momento fletor em X correspondente a flambagem elástica,
-        para o estado limite de flambagem local da mesa.
-        """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
-
-        raise NotImplementedError
-
-    def Mnx_FLM(self):
         """
         Determina o momento fletor resistente nominal em X de uma barra para
         o estado limite último de flambagem local da mesa.
-
-        Return
-        ------
         """
-        # Este método está implementado para os perfis apresentados
-        # na tabela G1 da do anexo G da NBR8800 para os perfis que
-        # não estão contidos na tabela esse método deve ser sobrescrito,
-        # caso o perfil não apresente FLM como um estado limite esse método
-        # deve ser sobrescrito retornando o momento de plastificação (Mpl)
 
-        elp, elr = self.par_esbeltez_limite_Mrdx_FLM()
+        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'TUBO RET', 'CAIXAO', 'U SOLDADO', 'U LAMINADO'):
 
-        if self.esb_alma < elp:
-            return self.Mplx
-        elif elp < self.esb_alma < elr:
-            return self.Mplx - self.Mplx - (self.Mplx - self.Mrx_FLM) * (self.esb_alma - elp) / (elr - elp)
-        elif self.esb_alma > elr:
-            return self.Mcrx_FLM()
+            # Determinação dos parâmetros necessários para determinação do momento fletor
+
+            elp = 1.12 * perfil.raiz_E_fy if perfil.tipo in ('TUBO RET', 'CAIXAO') else 0.38 * perfil.raiz_E_fy
+
+            if perfil.tipo in ('TUBO RET', 'CAIXAO'):
+                elp = 1.12 * perfil.raiz_E_fy
+                elr = 1.40 * perfil.raiz_E_fy
+
+                Mrx = perfil.material.fy  # calcular Wef
+                Mcrx = perfil.Wx * perfil.material.fy  # calcular Wef e fazer Wef/Wx * fy
+
+            else:
+                elp = 0.38 * perfil.raiz_E_fy
+
+                if perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
+                    kc = 4 / sqrt(perfil.esb_alma)
+                    elr = 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
+                    Mcrx = 0.90 * perfil.material.E * kc * perfil.Wxs / perfil.esb_mesa ** 2
+                else:
+                    elr = 0.83 * sqrt(1 / 0.7) * perfil.raiz_E_fy
+                    Mcrx = 0.69 * perfil.material.E * perfil.Wx / perfil.esb_mesa ** 2
+
+                Mrx = 0.7 * perfil.Wxs
+
+            if perfil.esb_mesa < elp:
+                return perfil.Mplx
+            elif elp < perfil.esb_mesa < elr:
+                return perfil.Mplx - (perfil.Mplx - Mrx) * (perfil.esb_alma - elp) / (elr - elp)
+            elif perfil.esb_mesa > elr:
+                return Mcrx
+
+        elif perfil.tipo == ('T SOLDADO', 'T LAMINADO'):
+
+            elp = 0.38 * perfil.raiz_E_fy
+            elr = 1 * perfil.raiz_E_fy
+
+            if perfil.esb_mesa < elp:
+                return perfil.Mplx
+            elif elp < perfil.esb_mesa < elr:
+                return (1.19 - 0.5 * perfil.esb_mesa * perfil.raiz_fy_E) * perfil.Ws * perfil.material.fy
+            elif perfil.esb_mesa > elr:
+                return 0.69 * perfil.Ws * perfil.material.fy / perfil.esb_mesa ** 2
 
     # Estado Limite FLA
-    def Mrx_FLA(self):
-        """
-        Retorna o momento fletor em X correspondente ao inicio de escoamento da seção,
-        para o estado limite de flambagem local da alma.
-        """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
-        return self.Mrx
 
-    def Mcrx_FLA(self):
-        """
-        Retorna o momento fletor em X correspondente a flambagem elástica,
-        para o estado limite de flambagem local da mesa.
-        """
-        # Como o cálculo deste fator é em função do tipo de seção,
-        # este método deve ser implementado em cada uma das
-        # classes especificas de cada tipo de perfil.
-
-        raise NotImplementedError('Método não implementado')
-
-    def Mnx_FLA(self):
+    @staticmethod
+    def _Mnx_FLA(perfil):
         """
         Determina o momento fletor resistente nominal em X de uma barra para
         o estado limite último de flambagem local da alma.
-
-        Return
-        ------
         """
 
-        # Este método está implementado para os perfis apresentados
-        # na tabela G1 da do anexo G da NBR8800 para os perfis que
-        # não estão contidos na tabela esse método deve ser sobrescrito,
-        # caso o perfil não apresente FLA como um estado limite esse método
-        # deve ser sobrescrito retornando o momento de plastificação (Mpl)
+        elr = 5.7 * perfil.raiz_E_fy
 
-        elp, elr = self.par_esbeltez_limite_Mrdx_FLA()
+        if perfil.tipo in ('I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'CAIXAO') or (perfil.tipo == 'I SOLDADO '
+                                                                                  and perfil.bissimetrica):
+            elp = 3.76 * perfil.perfil.raiz_E_fy
 
-        if self.esb_alma < elp:
-            return self.Mplx
-        elif elp < self.esb_alma < elr:
-            return self.Mplx - self.Mplx - (self.Mplx - self.Mrx_FLM) * (self.esb_alma - elp) / (elr - elp)
+        elif perfil.tipo == 'I SOLDADO ' and not perfil.bissimetrica:
+            elp = (perfil.hc / perfil.hp) * perfil.raiz_E_fy / (0.54 * perfil.Mpl / perfil.Mrx - 0.09) ** 2
 
-    def Mrdx(self, Lb, gama_a1=1.1, Cb=1):
+            # IMPLEMENTAR NA CLASSE DOS PERFIS hc E hp
+
+            # hc = Duas vezes a distância do centro geométrico a seção transversal à face da mesa comprimida
+            # hp = Duas vezes a distância da linha neutra plástica da seção transversal à face interna da mesa comprimida
+
+            # IMPLEMENTAR NA CLASSE DOS PERFIS
+
+        elif perfil.tipo == 'TUBO RET':
+            elp = 2.42 * perfil.raiz_E_fy
+
+        if perfil.esb_alma < elp:
+            return perfil.Mplx
+        elif elp < perfil.esb_alma < elr:
+            return perfil.Mplx - perfil.Mplx - (perfil.Mplx - perfil.Mrx) * (perfil.esb_alma - elp) / (elr - elp)
+        else:
+            print("ALMA ESBELTA")
+
+    @staticmethod
+    def _Mn_Tubo(perfil):
+
+        elp = 0.07 * perfil.material.E / perfil.material.fy
+        elr = 0.37 * perfil.material.E / perfil.material.fy
+
+        if perfil.esb < elp:
+            return perfil.Mplx
+        elif elp < perfil.esb <= elr:
+            return (0.021 * perfil.material.E / perfil.esb + perfil.material.fy) * perfil.Wx
+        else:
+            return 0.33 * perfil.material.E * perfil.Wx / perfil.esb
+
+    @staticmethod
+    def Mrdx(perfil, Lb, gama_a1=1.1, Cb=1):
         """
         Método responsável por calcular o momento fletor resitente de cálculo para uma
         barra de comprimento Lb em relação ao eixo X do perfil, de acordo com a NBR8800.
@@ -495,4 +502,102 @@ class Nbr8800:
         ------
 
         """
-        return min(self.Mnx_FLA(), self.Mnx_FLM(), self.Mnx_FLT(Cb, Lb)) / gama_a1
+
+        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
+            return min(Nbr8800._Mnx_FLT(perfil, Lb, Cb), Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx > perfil.Wy:
+            return min(Nbr8800._Mnx_FLT(perfil, Lb, Cb), Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx < perfil.Wy:
+            return min(Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+
+        elif perfil.tipo in ('T LAMINADO', 'T SOLDADO'):
+            return min(Nbr8800._Mnx_FLT(perfil, Cb, Lb), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+
+        elif perfil.tipo == 'TUBO CIR':
+            return Nbr8800._Mn_Tubo(perfil) / gama_a1
+
+    # MOMENTO FLETOR EM Y
+    # ------------
+
+    # Estado Limite FLT
+    @staticmethod
+    def _Mny_FLT(perfil, Cb, Lb):
+
+        elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+        elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+
+        esb = perfil.indice_esbeltez(Lb, Lb)[1]
+
+        if esb < elp:
+            return perfil.Mply
+        elif elp < esb < elr:
+            return perfil.Mply - (perfil.Mply - 0.7 * perfil.Mry) * (esb - elp) / (elr - elp)
+        else:
+            Me = perfil.par_estabilidade()['Me']
+            return Cb * Me if Me < perfil.Mplx else perfil.Mply
+
+    @staticmethod
+    def _Mny_FLM(perfil):
+
+        # Determinação dos parâmetros necessários para determinação do momento fletor
+
+        if perfil.tipo in ('TUBO RET', 'CAIXAO'):
+            elp = 1.12 * perfil.raiz_E_fy
+            elr = 1.40 * perfil.raiz_E_fy
+
+            Mr = Wef * perfil.material.fy  # calcular Wef
+            Mcry = perfil.Wy * perfil.material.fy  # calcular Wef e fazer Wef/Wy * fy
+
+        else:
+            elp = 0.38 * perfil.raiz_E_fy
+
+            if perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
+                kc = 4 / sqrt(perfil.esb_alma)
+                elr = 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
+                Mcry = 0.90 * perfil.material.E * kc * perfil.Wys / perfil.esb_mesa ** 2
+
+            else:
+                elr = 0.83 * sqrt(1 / 0.7) * perfil.raiz_E_fy
+                Mcry = 0.69 * perfil.material.E * perfil.Wys / perfil.esb_mesa ** 2
+
+            Mry = 0.7 * perfil.Wy
+
+        if perfil.esb_mesa < elp:
+            return perfil.Mply
+        elif elp < perfil.esb_mesa < elr:
+            return perfil.Mply - (perfil.Mply - perfil.Mry) * (perfil.esb_alma - elp) / (elr - elp)
+        elif perfil.esb_mesa > elr:
+            return Mcry
+
+    @staticmethod
+    def _Mny_FLA(perfil):
+
+        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
+
+            elp = 1.12 * perfil.raiz_E_fy
+            elr = 1.40 * perfil.raiz_E_fy
+
+            Wef = perfil.W #IMPLEMENTAR Wef
+
+            Mry = Wef * perfil.material.fy
+            Mcry = Wef ** 2 * perfil.material.fy / perfil.Wy
+
+        else:
+
+            elp = 3.72 * perfil.raiz_E_fy if perfil.tipo == 'CAIXAO' else 2.42 * perfil.raiz_E_fy
+            elr = 5.7 * perfil.raiz_E_fy
+
+            Mr = perfil.Wy
+
+        if perfil.esb_mesa < elp:
+            return perfil.Mply
+        elif elp < perfil.esb_mesa < elr:
+            return perfil.Mply - (perfil.Mply - Mry) * (perfil.esb_alma - elp) / (elr - elp)
+        elif perfil.esb_mesa > elr:
+            return Mcry
+
+    @staticmethod
+    def Mrdy(perfil):
+        
