@@ -2,6 +2,7 @@ from secao import SecaoGenerica
 from math import pi, sqrt
 from material import Material, Aco
 import pandas as pd
+from collections import namedtuple
 
 perfis_AISC = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1).iloc[:, 84:]
 
@@ -197,6 +198,7 @@ class PerfilEstrutural(SecaoGenerica):
         ------
 
         """
+        par_estabilidade = namedtuple('par_estabilidade', 'Ne fe Nex Ney Nez Nexz Neyz Me')
 
         Nex = pi ** 2 * self.EIx / (klx ** 2)
         Ney = pi ** 2 * self.EIy / (kly ** 2)
@@ -207,6 +209,7 @@ class PerfilEstrutural(SecaoGenerica):
 
         if self.bi_simetrica:
             Ne = min(Nex, Ney, Nez)
+            Me = self.ro * sqrt(Ney * Nez) if self.Ix > self.Iy else self.ro * sqrt(Nex * Nez)
 
         elif not self.bi_simetrica and self.simetria_y:
 
@@ -225,11 +228,30 @@ class PerfilEstrutural(SecaoGenerica):
             Me = self.ro * sqrt(Nex * Nez)
 
         else:
-            pass
+
+            a = 1 - (self.yo ** 2 + self.xo ** 2) / self.ro ** 2
+            b = -Nex - Ney - Nez + (self.xo / self.ro) ** 2 * Ney + (self.yo / self.ro) ** 2 * Nex
+            c = Ney * Nex + Nex * Nez
+            d = - Nex * Ney * Nez
+
+            det_0 = b ** 2 - 3 * a * c
+            det_1 = 2 * b ** 3 - 9 * a * b * c + 27 * a ** 2 * d
+            det = (det_1 ** 2 - 4 * det_0 ** 3) / (-27 * a ** 2)
+
+            C = ((sqrt(det_1 ** 2 - 4 * det_0 ** 3) + det_1) / 2) ** (1/3)
+
+            u = -1 + sqrt(-3) / 2
+
+            raizes = list()
+
+            for n in range(1, 4):
+                raizes.append((- (b + (u ** n * C) + det_0) / (u ** n * C)) / (3 * a))
+
+            Ne = min(raizes)
 
         fe = Ne / self.A
 
-        return {'Ne': Ne, 'fe': fe, 'Nex': Nex, 'Ney': Ney, 'Nez': Nez, 'Nexz': Nexz, 'Neyz': Neyz, 'Me': Me}
+        return par_estabilidade(Ne, fe, Nex, Ney, Nez, Nexz, Neyz, Me)
 
 
 class PerfilI(PerfilEstrutural):
@@ -256,20 +278,25 @@ class PerfilI(PerfilEstrutural):
 
         self.d = d
         self.dl = d - tfi - tfs
+        self.h = self.dl
         self.tw = tw
         self.bfs = bfs
         self.bfi = bfi
         self.tfs = tfs
         self.tfi = tfi
-
         self.esb_mesa_s = bfs / (2 * tfs)
         self.esb_mesa_i = bfi / (2 * tfi)
         self.esb_alma = self.dl / tw
+        self.Iys = None
+        self.Iyi = None
+        self.hcg = None
+        self.hpl = None
 
         simetria = [True, True]
         simetria[1] = False if bfs != bfi or tfi != tfs else True
 
-        super().__init__(**self.prop_geo(), material=material, simetria=simetria, tipo='I SOLDADO')
+        prop_geo = self.prop_geo()
+        super().__init__(**prop_geo[:14], material=material, simetria=simetria, tipo='I SOLDADO')
 
         self.Wy = self.Wys
 
@@ -291,7 +318,8 @@ class PerfilI(PerfilEstrutural):
         # Altura do centro geométrico da seção (ycg)
         # ------------------------------------------
 
-        ycg = (Am_inf * self.tfi / 2 + Aalma * (self.tfi + self.dl / 2) + Am_sup * (self.d - self.tfs / 2)) / A
+        ycg = (Am_inf * self.tfi / 2 + Aalma * (self.tfi + self.dl / 2)
+               + Am_sup * (self.d - self.tfs / 2)) / A
 
         # Momentos de inércia e constante de torção (Ix, Iy e J)
         # ------------------------------------------------------
@@ -349,11 +377,11 @@ class PerfilI(PerfilEstrutural):
             ypl = self.dl + self.tfi - (Am_inf - Am_sup + self.tw * self.dl) / (2 * self.tw)
 
             ys = (Am_sup * (self.d - self.tfs / 2) + (Aalma - self.tw * (ypl - self.tfi)) * (
-                ypl + self.dl + self.tfi) / 2) \
-                / (Am_sup + (Aalma - self.tw * (ypl - self.tfi)))
+                    ypl + self.dl + self.tfi) / 2) \
+                 / (Am_sup + (Aalma - self.tw * (ypl - self.tfi)))
 
             yi = (Am_inf * self.tfi / 2 + self.tw * (ypl - self.tfi) * (self.tfi + ypl) / 2) \
-                / (Am_inf + self.tw * (ypl - self.tfi))
+                 / (Am_inf + self.tw * (ypl - self.tfi))
 
         Zx = A * (ys - yi) / 2
         Zy = (Am_inf * self.bfi + Aalma * self.tw + Am_sup * self.bfs) / 4
@@ -370,7 +398,7 @@ class PerfilI(PerfilEstrutural):
         xo = 0
 
         h = self.d - self.tfi / 2 + self.tfs / 2
-        ycc = (self.d - self.tfs/2) - h * I2y / (I1y + I2y)
+        ycc = (self.d - self.tfs / 2) - h * I2y / (I1y + I2y)
         yo = ycc - ycg
 
         # Constante de empenamento (Cw)
@@ -379,8 +407,13 @@ class PerfilI(PerfilEstrutural):
         C = (self.bfi * self.bfs) ** 3 / (self.bfi ** 3 + self.bfs ** 3)
         Cw = C * (self.tfi + self.tfs) * h ** 2 / 24
 
+        self.Iys = I1y
+        self.Iyi = I2y
+        self.hpl = ypl
+        self.hcg = ycg
+
         return {'A': A, 'Ix': Ix, 'Iy': Iy, 'J': J, 'Wxs': Wxs, 'Wxi': Wxi, 'Wyi': Wyi, 'Wys': Wys,
-                'Zx': Zx, 'Zy': Zy, 'Awx': Awx, 'Awy': Awy, 'xo': xo, 'yo': yo, 'Cw': Cw}
+                'Zx': Zx, 'Zy': Zy, 'Awx': Awx, 'Awy': Awy, 'xo': xo, 'yo': yo, 'Cw': Cw }
 
 
 class PerfilILam(PerfilEstrutural):
@@ -393,7 +426,6 @@ class PerfilILam(PerfilEstrutural):
     """
 
     def __init__(self, nome, material):
-
         perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
 
         self.d = float(perfil['d.1'])
@@ -415,7 +447,7 @@ class PerfilILam(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self, perfil):
-
+        
         A = float(perfil['A.1'])
         Ix = float(perfil['Ix.1']) * 1E6
         Iy = float(perfil['Iy.1']) * 1E6
@@ -458,7 +490,6 @@ class Caixao(PerfilEstrutural):
     """
 
     def __init__(self, h, b, tw, tf, material):
-
         self.h = h
         self.b = b
         self.tw = tw
@@ -477,7 +508,6 @@ class Caixao(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self):
-
         # Área (A)
         # ---------
 
@@ -562,7 +592,6 @@ class TuboRet(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self, perfil):
-
         A = float(perfil['A.1'])
         Ix = float(perfil['Ix.1']) * 1E6
         Iy = float(perfil['Iy.1']) * 1E6

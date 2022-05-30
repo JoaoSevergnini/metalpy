@@ -15,7 +15,6 @@ from metalpy.normas import Nbr8800
 
 perfil = PerfilILam('W150X150', 'A350', norma = 'NBR8800')
 perfil.Ntrd_ESB()
-
 ~~~~
 
 
