@@ -4,6 +4,7 @@
       <w>aalma</w>
       <w>acordo</w>
       <w>aisc</w>
+      <w>alfa</w>
       <w>altura</w>
       <w>amesa</w>
       <w>anexo</w>
@@ -16,6 +17,7 @@
       <w>cada</w>
       <w>caixao</w>
       <w>calcular</w>
+      <w>cantoneira</w>
       <w>capacidade</w>
       <w>carga</w>
       <w>catalogados</w>
@@ -48,6 +50,7 @@
       <w>destravado</w>
       <w>determina</w>
       <w>determinado</w>
+      <w>determinação</w>
       <w>deve</w>
       <w>devido</w>
       <w>direção</w>
@@ -64,6 +67,7 @@
       <w>empenamento</w>
       <w>enrijecedores</w>
       <w>entre</w>
+      <w>equação</w>
       <w>esbelta</w>
       <w>esbeltez</w>
       <w>escoamento</w>
@@ -77,6 +81,7 @@
       <w>este</w>
       <w>estrutural</w>
       <w>está</w>
+      <w>existe</w>
       <w>fator</w>
       <w>flambagem</w>
       <w>fletidas</w>
@@ -92,6 +97,7 @@
       <w>geométrico</w>
       <w>giração</w>
       <w>implementado</w>
+      <w>implementar</w>
       <w>indica</w>
       <w>indice</w>
       <w>inércia</w>
@@ -100,6 +106,7 @@
       <w>kdes</w>
       <w>laminado</w>
       <w>laminados</w>
+      <w>largura</w>
       <w>limite</w>
       <w>limites</w>
       <w>mcrx</w>
@@ -118,9 +125,11 @@
       <w>módulo</w>
       <w>módulos</w>
       <w>ncrd</w>
+      <w>necessários</w>
       <w>nexz</w>
       <w>neyz</w>
       <w>ntrd</w>
+      <w>número</w>
       <w>opcional</w>
       <w>parâmetro</w>
       <w>parâmetros</w>
@@ -131,10 +140,12 @@
       <w>perfis</w>
       <w>plastificação</w>
       <w>plásticos</w>
+      <w>primeiro</w>
       <w>procedimento</w>
       <w>propriedades</w>
       <w>raio</w>
       <w>raiz</w>
+      <w>raizes</w>
       <w>reducao</w>
       <w>reduzido</w>
       <w>redução</w>
@@ -162,6 +173,7 @@
       <w>tdes</w>
       <w>tensao</w>
       <w>tensão</w>
+      <w>termo</w>
       <w>tipo</w>
       <w>todos</w>
       <w>torno</w>
@@ -169,8 +181,10 @@
       <w>transversal</w>
       <w>tranversal</w>
       <w>trasnversal</w>
+      <w>traçâo</w>
       <w>tração</w>
       <w>tubo</w>
+      <w>tubulares</w>
       <w>validar</w>
       <w>verificações</w>
       <w>vplx</w>
