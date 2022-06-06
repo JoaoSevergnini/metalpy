@@ -90,18 +90,17 @@ class PerfilEstrutural(SecaoGenerica):
 
     @property
     def rx(self):
-        """ Método que determina o raio de giração em relação ao X da seção transversal """
+        """ Raio de giração em relação ao X da seção transversal """
         return sqrt(self.Ix / self.A)
 
     @property
     def ry(self):
-        """ Método que determina o raio de giração em relação ao Y da seção transversal """
+        """ Raio de giração em relação ao Y da seção transversal """
         return sqrt(self.Iy / self.A)
 
     @property
     def ro(self):
-        """ Método que determina o raio de giração polar de inércia da seção em relação
-        ao centro de cisalhamento """
+        """ Raio de giração polar de inércia da seção em relação ao centro de cisalhamento """
         return sqrt((self.Iy + self.Ix) / self.A + self.xo ** 2 + self.yo ** 2)
 
     # Capacidade resistente do perfil sem consideração dos efeitos de instabilidade
@@ -155,7 +154,7 @@ class PerfilEstrutural(SecaoGenerica):
         return self.simetria[1]
 
     @property
-    def bi_simetrica(self):
+    def bissimetrico(self):
         return True if self.simetria_x and self.simetria_y else False
 
     # Métodos para definição da carga critica de flambagem de um elemento de barra de comprimentos
@@ -207,11 +206,11 @@ class PerfilEstrutural(SecaoGenerica):
         Neyz = None
         Me = None
 
-        if self.bi_simetrica:
+        if self.bissimetrico:
             Ne = min(Nex, Ney, Nez)
             Me = self.ro * sqrt(Ney * Nez) if self.Ix > self.Iy else self.ro * sqrt(Nex * Nez)
 
-        elif not self.bi_simetrica and self.simetria_y:
+        elif not self.bissimetrico and self.simetria_y:
 
             Neyz = (Ney + Nez) / (2 * (1 - (self.yo / self.ro) ** 2)) * \
                    (1 - sqrt(1 - 4 * Ney * Nez * (1 - (self.yo / self.ro) ** 2) / (Ney + Nez) ** 2))
@@ -219,7 +218,7 @@ class PerfilEstrutural(SecaoGenerica):
             Ne = min(Nex, Neyz)
             Me = self.ro * sqrt(Nex * Nez)
 
-        elif not self.bi_simetrica and self.simetria_x:
+        elif not self.bissimetrico and self.simetria_x:
 
             Nexz = (Nex + Nez) / (2 * (1 - (self.xo / self.ro) ** 2)) * \
                    (1 - sqrt(1 - 4 * Nex * Nez * (1 - (self.xo / self.ro) ** 2) / (Nex + Nez) ** 2))
@@ -581,8 +580,8 @@ class TuboRet(PerfilEstrutural):
         self.tw = self.t
         self.tf = self.t
 
-        self.bint = self.b - 3 * self.t
-        self.hint = self.h - 3 * self.t
+        self.bint = self.esb_mesa * self.t
+        self.hint = self.esb_alma * self.t
 
         simetria = [True, True]
 
@@ -601,8 +600,8 @@ class TuboRet(PerfilEstrutural):
         Zx = float(perfil['Zx.1']) * 1E3
         Zy = float(perfil['Zy.1']) * 1E3
 
-        Awy = 2 * (self.h - 3 * self.t) * self.t
-        Awx = 2 * (self.b - 3 * self.t) * self.t
+        Awy = 2 * (self.h - 2 * self.t) * self.t
+        Awx = 2 * (self.b - 2 * self.t) * self.t
 
         xo = 0
         yo = 0
@@ -632,6 +631,8 @@ class TuboCir(PerfilEstrutural):
         simetria = [True, True]
 
         super().__init__(**self.prop_geo(perfil), material=material, simetria=simetria, tipo='TUBO CIR')
+
+        self.W = self.Wxs
 
     def prop_geo(self, perfil):
 

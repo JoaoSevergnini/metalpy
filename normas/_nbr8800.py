@@ -164,6 +164,8 @@ class Nbr8800:
                 return 1
             elif elp < perfil.esb <= elr:
                 return 0.038 * perfil.raiz_E_fy ** 2 / perfil.esb + 2 / 3
+            else:
+                print('Esbeltez do perfil supera o valor permitido pela NBR8800')
 
     @staticmethod
     def Ncrd(perfil, klx, kly, klz, gama_a1=1.1, data=False):
@@ -369,8 +371,8 @@ class Nbr8800:
 
             # Determinação dos parâmetros necessários para determinação do momento fletor
             if perfil.tipo in ('TUBO RET', 'CAIXAO'):
-                elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
-                elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+                elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
+                elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
 
             else:
                 elp = 1.76 * perfil.raiz_E_fy
@@ -378,7 +380,7 @@ class Nbr8800:
                 beta_1 = perfil.Wxs * Nbr8800.c_tensao_res / (perfil.material.E * perfil.J)
                 beta_2 = 1
 
-                if perfil.tipo == 'I SOLDADO' and not perfil.bi_simetrica:
+                if perfil.tipo == 'I SOLDADO' and not perfil.bissimetrico:
                     alfa_y = perfil.Iys / perfil.Iyi
                     beta_3 = 0.45 * (perfil.d - (perfil.tfs + perfil.tfi) / 2) * (alfa_y - 1) / (alfa_y + 1)
                     beta_2 = 5.2 * beta_1 * beta_3 + 1
@@ -393,10 +395,8 @@ class Nbr8800:
                 return perfil.Mplx
 
             elif elp < esb < elr:
-
-                Mr = perfil.Mrx * 0.7 if not perfil.tipo == 'I LAMINADO' and not perfil.bi_simetrica \
+                Mr = perfil.Mrx * 0.7 if not perfil.tipo == 'I LAMINADO' and not perfil.bissimetrico \
                     else min(0.7 * perfil.Wxs, 0.7 * perfil.Mr)
-
                 return perfil.Mplx - (perfil.Mplx - Mr) * (esb - elp) / (elr - elp)
 
             elif elr < esb:
@@ -410,7 +410,6 @@ class Nbr8800:
     # Estado Limite FLM
     @staticmethod
     def _Mnx_FLM(perfil):
-
         """
         Determina o momento fletor resistente nominal em X de uma barra para
         o estado limite último de flambagem local da mesa.
@@ -500,7 +499,7 @@ class Nbr8800:
         if perfil.esb < elp:
             return perfil.Mplx
         elif elp < perfil.esb <= elr:
-            return (0.021 * perfil.material.E / perfil.esb + perfil.material.fy) * perfil.Wx
+            return (0.021 * perfil.material.E / perfil.esb + perfil.material.fy) * perfil.W
         else:
             return 0.33 * perfil.material.E * perfil.Wx / perfil.esb
 
