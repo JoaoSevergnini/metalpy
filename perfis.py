@@ -4,7 +4,9 @@ from material import Material, Aco
 import pandas as pd
 from collections import namedtuple
 
-perfis_AISC = pd.read_excel('aisc-shapes-database-v15.0.xlsx', 1).iloc[:, 84:]
+perfis_AISC = pd.read_excel('db-aisc-perfis.xlsx')
+perfis_vallourec_ret = pd.read_excel('db-vallourec-perfis.xlsx')
+perfis_vallourec_cir = pd.read_excel('db-vallourec-perfis.xlsx', 1)
 
 
 class PerfilEstrutural(SecaoGenerica):
@@ -570,13 +572,13 @@ class Caixao(PerfilEstrutural):
 class TuboRet(PerfilEstrutural):
 
     def __init__(self, nome, material):
-        perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
+        perfil = perfis_AISC[perfis_AISC['Nomes'] == nome]
 
-        self.h = float(perfil['Ht.1'])
-        self.b = float(perfil['B.1'])
-        self.esb_alma = float(perfil['h/tdes.1'])
-        self.esb_mesa = float(perfil['b/tdes.1'])
-        self.t = float(perfil['tdes.1'])
+        self.h = float(perfil['Ht'])
+        self.b = float(perfil['B'])
+        self.esb_alma = float(perfil['h/tdes'])
+        self.esb_mesa = float(perfil['b/tdes'])
+        self.t = float(perfil['tdes'])
         self.tw = self.t
         self.tf = self.t
 
@@ -591,14 +593,14 @@ class TuboRet(PerfilEstrutural):
         self.Wy = self.Wys
 
     def prop_geo(self, perfil):
-        A = float(perfil['A.1'])
-        Ix = float(perfil['Ix.1']) * 1E6
-        Iy = float(perfil['Iy.1']) * 1E6
-        J = float(perfil['J.1']) * 1E3
-        Wx = float(perfil['Sx.1']) * 1E3
-        Wy = float(perfil['Sy.1']) * 1E3
-        Zx = float(perfil['Zx.1']) * 1E3
-        Zy = float(perfil['Zy.1']) * 1E3
+        A = float(perfil['A'])
+        Ix = float(perfil['Ix']) * 1E6
+        Iy = float(perfil['Iy']) * 1E6
+        J = float(perfil['J']) * 1E3
+        Wx = float(perfil['Wx']) * 1E3
+        Wy = float(perfil['Wy']) * 1E3
+        Zx = float(perfil['Zx']) * 1E3
+        Zy = float(perfil['Zy']) * 1E3
 
         Awy = 2 * (self.h - 2 * self.t) * self.t
         Awx = 2 * (self.b - 2 * self.t) * self.t
@@ -620,30 +622,28 @@ class TuboCir(PerfilEstrutural):
     def __init__(self, nome, material):
         self._validar_nome(nome)
 
-        perfil = perfis_AISC[perfis_AISC['EDI_Std_Nomenclature.1'] == nome]
-
-        self.D = float(perfil['OD.1'])
-        self.t = float(perfil['tdes.1'])
-        self.esb = float(perfil['D/t.1'])
+        self.D = float(self._dados_perfil['D'])
+        self.t = float(self._dados_perfil['tdes'])
+        self.esb = float(self._dados_perfil['D/t'])
 
         self.Dint = self.D - 2 * self.t
 
         simetria = [True, True]
 
-        super().__init__(**self.prop_geo(perfil), material=material, simetria=simetria, tipo='TUBO CIR')
+        super().__init__(**self.prop_geo(), material=material, simetria=simetria, tipo='TUBO CIR')
 
         self.W = self.Wxs
 
-    def prop_geo(self, perfil):
+    def prop_geo(self):
 
-        A = float(perfil['A.1'])
-        Ix = float(perfil['Ix.1']) * 1E6
-        Iy = float(perfil['Iy.1']) * 1E6
-        J = float(perfil['J.1']) * 1E3
-        Wx = float(perfil['Sx.1']) * 1E3
-        Wy = float(perfil['Sy.1']) * 1E3
-        Zx = float(perfil['Zx.1']) * 1E3
-        Zy = float(perfil['Zy.1']) * 1E3
+        A = float(self._dados_perfil['A'])
+        Ix = float(self._dados_perfil['Ix']) * 1E6
+        Iy = float(self._dados_perfil['Iy']) * 1E6
+        J = float(self._dados_perfil['J']) * 1E3
+        Wx = float(self._dados_perfil['Wx']) * 1E3
+        Wy = float(self._dados_perfil['Wy']) * 1E3
+        Zx = float(self._dados_perfil['Zx']) * 1E3
+        Zy = float(self._dados_perfil['Zy']) * 1E3
 
         Awy = 0.5 * A
         Awx = 0.5 * A
@@ -657,4 +657,6 @@ class TuboCir(PerfilEstrutural):
                 'Zx': Zx, 'Zy': Zy, 'Awx': Awx, 'Awy': Awy, 'xo': xo, 'yo': yo, 'Cw': Cw}
 
     def _validar_nome(self, nome):
-        pass
+
+        db_perfis = pd.concat([perfis_AISC, perfis_vallourec_cir], sort=False)
+        self._dados_perfil = db_perfis[db_perfis['Nomes'] == nome]
