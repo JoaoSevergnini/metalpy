@@ -26,7 +26,7 @@ from metalpy.normas import Nbr8800
 #Criando um perfil W150X150 a partir da classe PerfilILam
 W150x150 = PerfilILam('W150X150', 'A350')
 
-#Obtendo a resistência ao momento em relação ao eixo de menor inércia
+#Obtendo a resistência ao momento em relação ao eixo de maior inércia
 Cb = 1
 Lb = 450
 Nbr8800.Mrdx(W150x150, Cb, Lb)
