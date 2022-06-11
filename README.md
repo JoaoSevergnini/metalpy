@@ -5,6 +5,7 @@ MetalPy
 determinação da capacidade de resistênte de perfis estruturais de aço. Esta biblioteca
 conta com um módulo de perfis metálicos e um módulo de verificação no qual é fornecida
 métodos de verifição da capacidade resistente dos perfis.
+
 O módulo de perfis metálicos conta com perfis dos tipos:
 
  * I laminado (W, H, HP) (Ver ...)
