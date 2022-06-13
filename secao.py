@@ -1,11 +1,11 @@
-from math import sqrt, pi
 from material import Material
+from util import PropGeo
 
 
 class SecaoGenerica:
     """
     Esta classe define uma seção tranversal de barra de formato genérico
-    de acordo com suas propriedades geométricas e seu material.
+    de acordo com suas propriedades geométricas e seu mat.
 
     Parameter
     ----------
@@ -24,24 +24,29 @@ class SecaoGenerica:
     J: 'float'
         constante de torção da seção em relação ao centróide da seção
 
-    material: 'material'
+    mat: 'Material'
         material que compõe a seção em relação ao eixo X (horizontal)
         que passa pelo centroide da seção.
     """
 
-    def __init__(self, A, Ix, Iy, J, material):
+    A  = PropGeo('A', 2)
+    Ix = PropGeo('Ix', 4)
+    Iy = PropGeo('Iy', 4)
+    J  = PropGeo('J', 4)
+
+    def __init__(self, A, Ix, Iy, J, mat: Material):
 
         self.A = A
         self.Ix = Ix
         self.Iy = Iy
         self.J = J
-        self.material = material
-
+        self.mat = mat
+        
         # Rigidezes
-        self.EA = self.material.E * self.A
-        self.EIx = self.material.E * self.Ix
-        self.EIy = self.material.E * self.Iy
-        self.GJ = self.material.G * self.J
+        self.EA = self.mat.E * self.A
+        self.EIx = self.mat.E * self.Ix
+        self.EIy = self.mat.E * self.Iy
+        self.GJ = self.mat.G * self.J
 
 
 
