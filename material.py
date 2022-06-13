@@ -1,27 +1,36 @@
+from util import NumPositivo
+
+
 class Material:
     """
     Esta classe define um material isotrópico de acordo com as suas propriedades mecânicas.
 
     Parameter
     ---------
-    E: 'float'
-        módulo de elasticidade (módulo de young) do material
+    E: float, opcional
+        Módulo de elasticidade (módulo de young) do material
 
-    poisson: 'float'
-        coeficiente de poisson do material
+    poisson: float, opcional
+        Coeficiente de poisson do material
 
-    fy: 'float'
-        tensão de escoamento do material
+    fy: float, opcional
+        Tensão de escoamento do material
 
-    fu: 'float'
-        tensão de ruptura do material
+    fu: float, opcional
+        Tensão de ruptura do material
 
-    p: 'float'
-        massa especifica do material
+    rho: float, opcional
+        Massa especifica do material
 
-    a = 'float'
-        coeficiente de dilatação térmica
+    alfa = float, opcional
+        Coeficiente de dilatação térmica
     """
+    
+    E = NumPositivo('E')
+    G = NumPositivo('G')
+    poisson = NumPositivo('poisson')
+    rho = NumPositivo('rho')
+    alfa = NumPositivo('alfa')
 
     def __init__(self, E, poisson, p=None, a=None):
         self.E = E

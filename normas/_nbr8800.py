@@ -1,7 +1,8 @@
-from perfis import *
+from math import sqrt, pi
+from collections import namedtuple
 
 
-class Nbr8800:
+class NBR8800:
     c_tensao_res = 0.7
 
     # TRAÇÂO
@@ -138,22 +139,22 @@ class Nbr8800:
         (Ver anexo F da NBR8800:2008) """
 
         if perfil.tipo in ('I LAMINADO', 'U LAMINADO'):
-            return Nbr8800._Qa(perfil, chi) * Nbr8800._Qs_g4(perfil)
+            return NBR8800._Qa(perfil, chi) * NBR8800._Qs_g4(perfil)
 
         elif perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
-            return Nbr8800._Qa(perfil, chi) * Nbr8800._Qs_g5(perfil)
+            return NBR8800._Qa(perfil, chi) * NBR8800._Qs_g5(perfil)
 
         elif perfil.tipo == 'T SOLDADO':
-            return Nbr8800._Qa(perfil, chi) * min(Nbr8800._Qs_g4(perfil), Nbr8800._Qs_g6(perfil))
+            return NBR8800._Qa(perfil, chi) * min(NBR8800._Qs_g4(perfil), NBR8800._Qs_g6(perfil))
 
         elif perfil.tipo == 'T LAMINADO':
-            return Nbr8800._Qa(perfil, chi) * min(Nbr8800._Qs_g5(perfil), Nbr8800._Qs_g6(perfil))
+            return NBR8800._Qa(perfil, chi) * min(NBR8800._Qs_g5(perfil), NBR8800._Qs_g6(perfil))
 
         elif perfil.tipo in ('CAIXAO', 'TUBO RET'):
-            return Nbr8800._Qa(perfil, chi)
+            return NBR8800._Qa(perfil, chi)
 
         elif perfil.tipo == 'CANTONEIRA':
-            return Nbr8800._Qs_g4(perfil)
+            return NBR8800._Qs_g4(perfil)
 
         elif perfil.tipo == 'TUBO CIR':
 
@@ -202,9 +203,9 @@ class Nbr8800:
         if ier1 <= 1.5:
             Chi1 = 0.658 ** (ier1 ** 2)
         else:
-            Chi1= 0.877 / ier1 ** 2
+            Chi1 = 0.877 / ier1 ** 2
 
-        Q = Nbr8800._Q(perfil, Chi1)
+        Q = NBR8800._Q(perfil, Chi1)
 
         # Fator Chi com a consideração de flambagem local
         # -----------------------------------------------
@@ -275,10 +276,10 @@ class Nbr8800:
 
             Vrdx_dados = namedtuple('Vrdx_dados', 'fcr')
 
-            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
-            fcr2 = 0.78 * perfil.material.E / perfil.esb ** 1.5
+            fcr1 = 1.60 * perfil.mat.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
+            fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
 
-            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.material.fy else 0.6 * perfil.material.fy
+            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
 
             Vrdx = fcr * perfil.Awy / gama_a1
 
@@ -348,10 +349,10 @@ class Nbr8800:
                 return Vrdy if not data else (Vrdy, Vrdy_dados(Vpl, kv, elp, elr))
 
         elif perfil.tipo == 'TUBO CIR':
-            fcr1 = 1.60 * perfil.material.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
-            fcr2 = 0.78 * perfil.material.E / perfil.esb ** 1.5
+            fcr1 = 1.60 * perfil.mat.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
+            fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
 
-            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.material.fy else 0.6 * perfil.material.fy
+            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
 
             Vrdy = fcr * perfil.Awy / gama_a1
             return Vrdy if not data else (Vrdy, Vrdy_dados(fcr))
@@ -371,13 +372,13 @@ class Nbr8800:
 
             # Determinação dos parâmetros necessários para determinação do momento fletor
             if perfil.tipo in ('TUBO RET', 'CAIXAO'):
-                elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
-                elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
+                elp = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
+                elr = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
 
             else:
                 elp = 1.76 * perfil.raiz_E_fy
 
-                beta_1 = perfil.Wxs * Nbr8800.c_tensao_res / (perfil.material.E * perfil.J)
+                beta_1 = perfil.Wxs * NBR8800.c_tensao_res / (perfil.mat.E * perfil.J)
                 beta_2 = 1
 
                 if perfil.tipo == 'I SOLDADO' and not perfil.bissimetrico:
@@ -423,8 +424,8 @@ class Nbr8800:
                 elp = 1.12 * perfil.raiz_E_fy
                 elr = 1.40 * perfil.raiz_E_fy
 
-                Mrx = perfil.material.fy  # calcular Wef
-                Mcrx = perfil.Wx * perfil.material.fy  # calcular Wef e fazer Wef/Wx * fy
+                Mrx = perfil.mat.fy  # calcular Wef
+                Mcrx = perfil.Wx * perfil.mat.fy  # calcular Wef e fazer Wef/Wx * fy
 
             else:
                 elp = 0.38 * perfil.raiz_E_fy
@@ -432,10 +433,10 @@ class Nbr8800:
                 if perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
                     kc = 4 / sqrt(perfil.esb_alma)
                     elr = 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
-                    Mcrx = 0.90 * perfil.material.E * kc * perfil.Wxs / perfil.esb_mesa ** 2
+                    Mcrx = 0.90 * perfil.mat.E * kc * perfil.Wxs / perfil.esb_mesa ** 2
                 else:
                     elr = 0.83 * sqrt(1 / 0.7) * perfil.raiz_E_fy
-                    Mcrx = 0.69 * perfil.material.E * perfil.Wx / perfil.esb_mesa ** 2
+                    Mcrx = 0.69 * perfil.mat.E * perfil.Wx / perfil.esb_mesa ** 2
 
                 Mrx = 0.7 * perfil.Wxs
 
@@ -454,9 +455,9 @@ class Nbr8800:
             if perfil.esb_mesa < elp:
                 return perfil.Mplx
             elif elp < perfil.esb_mesa < elr:
-                return (1.19 - 0.5 * perfil.esb_mesa * perfil.raiz_fy_E) * perfil.Ws * perfil.material.fy
+                return (1.19 - 0.5 * perfil.esb_mesa * perfil.raiz_fy_E) * perfil.Ws * perfil.mat.fy
             elif perfil.esb_mesa > elr:
-                return 0.69 * perfil.Ws * perfil.material.fy / perfil.esb_mesa ** 2
+                return 0.69 * perfil.Ws * perfil.mat.fy / perfil.esb_mesa ** 2
 
     # Estado Limite FLA
 
@@ -469,11 +470,11 @@ class Nbr8800:
 
         elr = 5.7 * perfil.raiz_E_fy
 
-        if perfil.tipo in ('I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'CAIXAO') or (perfil.tipo == 'I SOLDADO '
-                                                                                  and perfil.bissimetrica):
+        if perfil.tipo in ('I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'CAIXAO') or (perfil.tipo == 'I SOLDADO'
+                                                                                  and perfil.bissimetrico):
             elp = 3.76 * perfil.raiz_E_fy
 
-        elif perfil.tipo == 'I SOLDADO ' and not perfil.bissimetrica:
+        elif perfil.tipo == 'I SOLDADO' and not perfil.bissimetrico:
 
             hc = 2 * (perfil.d - perfil.tfs - perfil.hcg)
             hp = 2 * (perfil.d - perfil.tfs - perfil.hpl)
@@ -486,22 +487,22 @@ class Nbr8800:
         if perfil.esb_alma < elp:
             return perfil.Mplx
         elif elp < perfil.esb_alma < elr:
-            return perfil.Mplx - perfil.Mplx - (perfil.Mplx - perfil.Mrx) * (perfil.esb_alma - elp) / (elr - elp)
+            return perfil.Mplx - (perfil.Mplx - perfil.Mrx) * (perfil.esb_alma - elp) / (elr - elp)
         else:
             print("ALMA ESBELTA")
 
     @staticmethod
     def _Mn_Tubo(perfil):
 
-        elp = 0.07 * perfil.material.E / perfil.material.fy
-        elr = 0.37 * perfil.material.E / perfil.material.fy
+        elp = 0.07 * perfil.mat.E / perfil.mat.fy
+        elr = 0.37 * perfil.mat.E / perfil.mat.fy
 
         if perfil.esb < elp:
             return perfil.Mplx
         elif elp < perfil.esb <= elr:
-            return (0.021 * perfil.material.E / perfil.esb + perfil.material.fy) * perfil.W
+            return (0.021 * perfil.mat.E / perfil.esb + perfil.mat.fy) * perfil.W
         else:
-            return 0.33 * perfil.material.E * perfil.Wx / perfil.esb
+            return 0.33 * perfil.mat.E * perfil.Wx / perfil.esb
 
     @staticmethod
     def Mrdx(perfil, Lb, gama_a1=1.1, Cb=1):
@@ -526,19 +527,19 @@ class Nbr8800:
         """
 
         if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
-            return min(Nbr8800._Mnx_FLT(perfil, Lb, Cb), Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
 
         elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx > perfil.Wy:
-            return min(Nbr8800._Mnx_FLT(perfil, Lb, Cb), Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
 
         elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx < perfil.Wy:
-            return min(Nbr8800._Mnx_FLM(perfil), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
 
         elif perfil.tipo in ('T LAMINADO', 'T SOLDADO'):
-            return min(Nbr8800._Mnx_FLT(perfil, Cb, Lb), Nbr8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Cb, Lb), NBR8800._Mnx_FLA(perfil)) / gama_a1
 
         elif perfil.tipo == 'TUBO CIR':
-            return Nbr8800._Mn_Tubo(perfil) / gama_a1
+            return NBR8800._Mn_Tubo(perfil) / gama_a1
 
     # MOMENTO FLETOR EM Y
     # ------------
@@ -547,8 +548,8 @@ class Nbr8800:
     @staticmethod
     def _Mny_FLT(perfil, Cb, Lb):
 
-        elp = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
-        elr = 0.13 * perfil.material.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+        elp = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+        elr = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
 
         esb = perfil.indice_esbeltez(Lb, Lb)[1]
 
@@ -569,8 +570,8 @@ class Nbr8800:
             elp = 1.12 * perfil.raiz_E_fy
             elr = 1.40 * perfil.raiz_E_fy
 
-            Mry = Wef * perfil.material.fy  # calcular Wef
-            Mcry = perfil.Wy * perfil.material.fy  # calcular Wef e fazer Wef/Wy * fy
+            Mry = Wef * perfil.mat.fy  # calcular Wef
+            Mcry = perfil.Wy * perfil.mat.fy  # calcular Wef e fazer Wef/Wy * fy
 
         else:
             elp = 0.38 * perfil.raiz_E_fy
@@ -578,11 +579,11 @@ class Nbr8800:
             if perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
                 kc = 4 / sqrt(perfil.esb_alma)
                 elr = 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
-                Mcry = 0.90 * perfil.material.E * kc * perfil.Wys / perfil.esb_mesa ** 2
+                Mcry = 0.90 * perfil.mat.E * kc * perfil.Wys / perfil.esb_mesa ** 2
 
             else:
                 elr = 0.83 * sqrt(1 / 0.7) * perfil.raiz_E_fy
-                Mcry = 0.69 * perfil.material.E * perfil.Wys / perfil.esb_mesa ** 2
+                Mcry = 0.69 * perfil.mat.E * perfil.Wys / perfil.esb_mesa ** 2
 
             Mry = 0.7 * perfil.Wy
 
@@ -603,8 +604,8 @@ class Nbr8800:
 
             Wef = perfil.W  # IMPLEMENTAR Wef
 
-            Mry = Wef * perfil.material.fy
-            Mcry = Wef ** 2 * perfil.material.fy / perfil.Wy
+            Mry = Wef * perfil.mat.fy
+            Mcry = Wef ** 2 * perfil.mat.fy / perfil.Wy
 
         else:
 
@@ -626,14 +627,17 @@ class Nbr8800:
     @staticmethod
     def Mrdy(perfil, Lb, gama_a1=1.1, Cb=1):
 
-        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U LAMINADO') and perfil.bissimetrica:
-            return min(Nbr8800._Mny_FLM(perfil), Nbr8800._Mny_FLA(perfil)) / gama_a1
+        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U LAMINADO') and perfil.bissimetrico:
+            return min(NBR8800._Mny_FLM(perfil), NBR8800._Mny_FLA(perfil)) / gama_a1
 
-        elif perfil.tipo in ('TUBO RET', 'CAIXAO'):
-            return min(Nbr8800._Mny_FLT(perfil, Cb, Lb), Nbr8800._Mny_FLM(perfil), Nbr8800._Mny_FLA(perfil)) / gama_a1
+        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy > perfil.Ix:
+            return min(NBR8800._Mny_FLT(perfil, Cb, Lb), NBR8800._Mny_FLM(perfil), NBR8800._Mny_FLA(perfil)) / gama_a1
+
+        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy < perfil.Ix:
+            return min(NBR8800._Mny_FLM(perfil), NBR8800._Mny_FLA(perfil)) / gama_a1
 
         elif perfil.tipo == 'TUBO CIR':
-            return Nbr8800._Mn_Tubo(perfil) / gama_a1
+            return NBR8800._Mn_Tubo(perfil) / gama_a1
 
         else:
             print('Perfil não apresenta resistência ao momento em relação ao momento em torno do eixo Y')
