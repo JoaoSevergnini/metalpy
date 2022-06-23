@@ -1,35 +1,89 @@
 from math import sqrt, pi
 from collections import namedtuple
+from warnings import warn
 
 
 class NBR8800:
+    """
+    Está classe apresenta os **métodos de verificação da capacidade resistênte** de perfis de aço
+    fornecidos pela norma brasileira **NBR8800:2008**: `Projeto de estruturas de aço e de estruturas
+    mistas de aço e concreto de edifícios`, de acordo com o método dos estados limites últimos **(ELU)**.
+
+    Static method
+    -------------
+    Ntrd_brt(perfil, gama_a1=1.1)
+        Determina a força resistênte de tração de cálculo ao escoamento da seção bruta do perfil.
+    Ncrd(perfil, klx, kly, klz, gama_a1=1.1, data='False')
+        Determina a força resistênte de compressão de cálculo de uma barra de aço.
+    Vrdx(perfil, gama_a1=1.1, data=False)
+        Determina a força resistênte de cisalhamento de cálculo na direção X (Horizontal)
+    Vrdy(perfil, gama_a1=1.1, data=False)
+        Determina a força resistênte de cisalhamento de cálculo na direção Y (Vertical)
+    Mrdx(perfil, Lb=None, Cb=1.0, gama_a1=1.1, data=False)
+        Determina o momento resistênte de cálculo do perfil em relação ao eixo X (Horizontal)
+    Mrdy(perfil, Lb=None, Cb=1.0, gama_a1=1.1, data=False)
+         Determina o momento resistênte de cálculo do perfil em relação ao eixo Y (Vertical)
+    """
     c_tensao_res = 0.7
 
-    # TRAÇÂO
-    # --------
+    # -> Métodos para determinação da resistência a tração
+    # ---------------------------------------------------------
 
     @staticmethod
-    def Ntrd_brt(perfil, gama_a1=1.1):
+    def Ntrd_brt(perfil, gama_a1=1.1, data=False):
         """
-        Método que determina a resistência ao escoamento da seção bruta de perfil métálico
+        Método que determina a força axial resistênte de cálculo ao escoamento da seção bruta do perfil
+        de acordo com a **NBR8800:2008**.
 
-        ver seção 5.2.2 da NBR8800:2008
+        Ver seção 5.2.2 da NBR8800:2008
 
         Parameter
         ---------
-        gama_a1: 'float' (default=1,1)
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        gama_a1: float, default=True
                 coeficiente de segurança gama_a1
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Ntrd.
+
+        Examples
+        --------
 
         Return
         ------
-
+        Ntrd: float
+            Força axial resistênte de cálculo ao escoamento da seção bruta
+        Ntrd, Ntrd_data: float, objeto Ntrd_data
+            Força axial resistênte de cálculo ao escoamento da seção bruta e dados de cálculo.
+            Caso data=True
         """
-        return perfil.Afy / gama_a1
 
-    # COMPRESSÃO
-    # -----------
+        warn('Item 5.2.8.1:A NBR8800:2008 recomenda que índice de esbeltez de barras tracionadas não '
+             'supere o valor de 300')
 
-    # Métodos auxiliares para a determinação do fator Qs de acordo com o anexo XX da NBR8800
+        Ntrd_dados = namedtuple('Ntrd_dados', 'Ntrk A fy')
+        Ntrd = perfil.Afy / gama_a1
+        return Ntrd if not data else (Ntrd, Ntrd_dados(perfil.Afy, perfil.A, perfil.mat.fy))
+
+    # -> Métodos para determinação da resistência a compressão
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def _kc(esb):
+        """ Conforme item (c) da seção F.2 do anexo F da NBR8800 """
+
+        kc = 4 / sqrt(esb)
+        kc = 0.35 if kc < 0.35 else kc
+        kc = 0.76 if kc > 0.76 else kc
+        return kc
+
+    # Métodos auxiliares para a determinação do fator Qs de acordo com a seção F.2 anexo F da NBR8800
     @staticmethod
     def _Qs_g3(perfil):
         """ Fator Qs para mesas de perfis do grupo 3 (cantoneiras) """
@@ -60,26 +114,24 @@ class NBR8800:
 
     @staticmethod
     def _Qs_g5(perfil):
-        """ Fator Qs para mesas de perfis soldados do tipo I, U e T"""
+        """ Fator Qs para mesas de perfis do grupo 5 (soldados I, U e T) """
 
-        kc = 4 / sqrt(perfil.esb_alma)
-        kc = 0.35 if kc < 0.35 else kc
-        kc = 0.76 if kc > 0.76 else kc
+        kc = NBR8800._kc(perfil.esb_alma)
 
         elp = 0.64 * perfil.raiz_E_fy * sqrt(kc)
         elr = 1.17 * perfil.raiz_E_fy * sqrt(kc)
 
         if perfil.tipo == 'I SOLDADO' and not perfil.simetria_x:
-            esb_mesa = max(perfil.esb_mesa_s, perfil.esb_mesa_sup)
+            esb_mesa = max(perfil.esb_mesa_s, perfil.esb_mesa_i)
         else:
             esb_mesa = perfil.esb_mesa
 
         if elp > esb_mesa:
             return 1
         elif elp < esb_mesa <= elr:
-            return 1.415 - 0.65 * esb_mesa / sqrt(kc) * perfil.raiz_fy_E
+            return 1.415 - 0.65 * (esb_mesa / sqrt(kc)) * perfil.raiz_fy_E
         else:
-            return 0.90 * kc / esb_mesa ** 2 * perfil.raiz_E_fy ** 2
+            return 0.90 * kc * perfil.raiz_E_fy ** 2 / (esb_mesa ** 2)
 
     @staticmethod
     def _Qs_g6(perfil):
@@ -96,40 +148,41 @@ class NBR8800:
             return 0.69 * perfil.raiz_E_fy ** 2 / perfil.esb_alma ** 2
 
     @staticmethod
+    def _bef(b, t, elr, E, fy, ca, chi):
+        """
+        Método auxiliar para o cálculo da largura efetiva de um elemento AA (apoiado apoiado) em compressão.
+
+        Ver item F.3.2 do anexo F da NBR8880:2008.
+        """
+
+        if b / t <= elr:
+            return b
+        else:
+            raiz_E_fcr = sqrt(E / (fy * chi))
+            bef = 1.92 * t * raiz_E_fcr * (1 - ca / (b / t) * raiz_E_fcr)
+            return min(bef, b)
+
+    @staticmethod
     def _Qa(perfil, chi):
-        """ Fator Qa para perfis com elementos apoiado-poiado"""
+        """
+        Fator Qa para perfis com elementos apoiado-poiado (AA) comprimidos.
+
+        Ver seção F.3 do anexo F da NBR8800:2008.
+        """
         elr = 1.40 * perfil.raiz_E_fy if perfil.tipo == "TUBO RET" else 1.49 * perfil.raiz_E_fy
 
+        # Para perfis tubo retangulares e caixão
         if perfil.tipo in ('TUBO RET', 'CAIXAO'):
-
-            if perfil.esb_alma < elr:
-                bef_alma = perfil.hint
-            else:
-                ca = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
-                raiz_E_fcr = perfil.raiz_E_fy / sqrt(chi)
-                bef = 1.92 * perfil.tw * raiz_E_fcr * (1 - ca * raiz_E_fcr / perfil.esb_alma)
-                bef_alma = bef if bef < perfil.hint else perfil.hint
-
-            if perfil.esb_mesa < elr:
-                bef_mesa = perfil.bint
-
-            else:
-                ca = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
-                raiz_E_fcr = perfil.raiz_E_fy / sqrt(chi)
-                bef = 1.92 * perfil.tf * raiz_E_fcr * (1 - ca * raiz_E_fcr / perfil.esb_mesa)
-                bef_mesa = bef if bef < perfil.bint else perfil.bint
+            ca = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
+            bef_alma = NBR8800._bef(perfil.hint, perfil.tw, elr, perfil.mat.E, perfil.mat.fy, ca, chi)
+            bef_mesa = NBR8800._bef(perfil.bint, perfil.tf, elr, perfil.mat.E, perfil.mat.fy, ca, chi)
 
             Aef = perfil.A - 2 * (perfil.bint - bef_mesa) * perfil.tf - 2 * (perfil.hint - bef_alma) * perfil.tw
             return Aef / perfil.A
 
+        # Para outros perfis com elementos AA
         else:
-            if perfil.esb_alma < elr:
-                bef_alma = perfil.hint
-            else:
-                raiz_E_fcr = perfil.raiz_E_fy / sqrt(chi)
-                bef = 1.92 * perfil.tw * raiz_E_fcr * (1 - 0.34 * raiz_E_fcr / perfil.esb_alma)
-                bef_alma = bef if bef < perfil.h else perfil.h
-
+            bef_alma = NBR8800._bef(perfil.h, perfil.tw, elr, perfil.mat.E, perfil.mat.fy, 0.34, chi)
             Aef = perfil.A - (perfil.h - bef_alma) * perfil.tw
             return Aef / perfil.A
 
@@ -166,39 +219,61 @@ class NBR8800:
             elif elp < perfil.esb <= elr:
                 return 0.038 * perfil.raiz_E_fy ** 2 / perfil.esb + 2 / 3
             else:
-                print('Esbeltez do perfil supera o valor permitido pela NBR8800')
+                raise ValueError('Item F.4.2: Esbeltez do perfil supera o valor permitido pela NBR8800 para perfis '
+                                 'tubulares circulares ')
+        else:
+            raise NotImplementedError('Cálculo do fator Q não implementado para perfis do tipo {}'.format(perfil.tipo))
 
     @staticmethod
     def Ncrd(perfil, klx, kly, klz, gama_a1=1.1, data=False):
         """
-        Método que determina a resistência a compressão de cálculo
-        de uma barra de aço de acordo com a NBR8800
+        Método que determina a força axial de compressão resistênte de cálculo de uma
+        barra de aço de acordo com a **NBR8800:2008**.
+
+        Ver seção 5.3 da NBR8800:2008.
 
         Parameter
-        ---------
-
-        klx:'float'
+        ----------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        klx: float
             comprimento de flambagem por flexão em relação ao eixo x
-
-        kly:'float'
+        kly: float
             comprimento de flambagem por flexão em relação ao eixo Y
-
-        klz:'float'
+        klz: float
             comprimento de flambagem por torção em relação ao eixo
             longitudinal Z
+        gama_a1: float, default=1.1
+                coeficiente de segurança
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Ncrd.
+        Examples
+        --------
 
         Return
         ------
-        Ncrd = 'float'
-            resistência a compressão do perfil
+        Ncrd: float
+            Força axial de compressão resistênte de cálculo.
+        Ncrd, Ncrd_dados: float, objeto Ncrd_dados
+            Força axial de compressão resistênte de cálculo e dados de cálculo.
+            Caso data=True
         """
-        Ncrd_dados = namedtuple('Ncrd_dados', 'Ne ier Chi Q')
+        if max(perfil.indice_esbeltez(klx, kly)) > 200:
+            raise ValueError('Item 5.3.4.1: O índice de esbeltez de uma barra comprimida não deve ser superior a 200')
 
-        # Fator Chi sem a consideração de flambagem local
-        # -----------------------------------------------
+        Ncrd_dados = namedtuple('Ncrd_dados', 'Ncrk A fy Ne ier1 Chi1 ier2 Chi2 Q')
+
+        # Fator Chi sem a consideração de flambagem local (Q=1)
+        # -----------------------------------------------------
 
         Ne = perfil.par_estabilidade(klx, kly, klz).Ne
-        ier1 = sqrt(perfil.Afy / Ne)
+        ier1 = sqrt(perfil.Afy / Ne)  # índice de esbeltez reduzido Q=1
 
         if ier1 <= 1.5:
             Chi1 = 0.658 ** (ier1 ** 2)
@@ -210,43 +285,57 @@ class NBR8800:
         # Fator Chi com a consideração de flambagem local
         # -----------------------------------------------
 
-        ier2 = sqrt(Q * perfil.Afy / Ne)
+        ier2 = sqrt(Q * perfil.Afy / Ne)  # índice de esbeltez reduzido
         if ier2 <= 1.5:
             Chi2 = 0.658 ** (ier2 ** 2)
         else:
             Chi2 = 0.877 / ier2 ** 2
 
-        Ncrd = Chi2 * Q * perfil.Afy / gama_a1
+        Ncrk = Chi2 * Q * perfil.Afy
+        Ncrd = Ncrk / gama_a1
 
-        return Ncrd if not data else (Ncrd, Ncrd_dados(Ne, ier1, Chi2, Q))
+        return Ncrd if not data else (Ncrd, Ncrd_dados(Ncrk, perfil.A, perfil.mat.fy, Ne, ier1, Chi1, ier2, Chi2, Q))
 
-    # CORTANTE
-    # -----------
+    # -> Métodos para determinação da resistência ao esforço cortante
+    # ---------------------------------------------------------------
 
     # EM X
     # -------------
     @staticmethod
-    def Vrdx(perfil, gama_a1=1.1, a=None, data=False):
+    def Vrdx(perfil, Lv=None, gama_a1=1.1, data=False):
         """
-        Método que determina a força cortante resistente de cálculo na
-        direção X do perfil de acordo com a NBR8800:2008.
+        Método que determina a força cortante resistente de cálculo do perfil para cargas aplicadas na direção X
+        de acordo com a **NBR8800:2008**.
 
-        ver a seção 5.4.3 da NBR8800:2008.
+        ver seção 5.4.3 da NBR8800:2008.
 
         Parameter
+        ---------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        gama_a1: float, default=1.1
+                coeficiente de segurança gama_a1
+        Lv: float, default=None
+            distância entre as seções de forças cortantes máxima e nula.
+            (só é necessário caso o perfil seja uma instância da classe TuboCir)
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Vrdx.
+        Examples
         --------
-        perfil: 'Perfil'
-
-        a: 'float'
-            distância entre eixos de enrijecedores
-
-        gama_a1: 'float' (default = 1.1)
-            coeficiente de minoração da resistência.
 
         Return
         ------
-        Vrdx: 'float'
+        Vrdx: float
             Força cortante resistênte de cálculo na direção x.
+        Vrdx, Vrdx_dados: float, Vrdx_dados
+            Força cortante resistênte de cálculo na direção x e dados de cálculo.
+            Caso data=True
         """
 
         if perfil.tipo in ('I SOLDADO', 'I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'TUBO RET'):
@@ -273,50 +362,57 @@ class NBR8800:
                 return Vrdx if not data else (Vrdx, Vrdx_dados(Vpl, kv, elp, elr))
 
         elif perfil.tipo == 'TUBO CIR':
-
-            Vrdx_dados = namedtuple('Vrdx_dados', 'fcr')
-
-            fcr1 = 1.60 * perfil.mat.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
-            fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
-
-            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
-
-            Vrdx = fcr * perfil.Awy / gama_a1
-
-            return Vrdx if not data else (Vrdx, Vrdx_dados(fcr))
+            return NBR8800._Vrd_tubo(perfil, Lv, gama_a1, data)
 
         else:
-            return None
+            return NotImplementedError('Vrdx não implementado para perfis do tipo {}'.format(perfil.tipo))
 
     # CORTANTE EM Y
     # -------------
     @staticmethod
-    def Vrdy(perfil, a=None, gama_a1=1.1, data=False):
+    def Vrdy(perfil, a=None, Lv=None, gama_a1=1.1, data=False):
 
         """
-        Método que determina a força cortante resistente de cálculo na
-        direção Y do perfil de acordo com a NBR8800:2008.
+        Método que determina a força cortante resistente de cálculo do perfil para cargas aplicadas na direção Y
+        de acordo com a **NBR8800:2008**.
 
-        O procedimento para a determinação da capacidade resistente ao corte
-        da seção transversal é realizado conforme a seção 5.4.3 da NBR8800:2008.
+        ver seção 5.4.3 da NBR8800:2008.
 
         Parameter
+        ---------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        gama_a1: float, default=1.1
+                coeficiente de segurança gama_a1
+        a: float, default=None
+            distância entre enrijecedores.
+            (só é necessário caso o perfil seja uma instância das classes PerfilI, PerfilILam)
+        Lv: float, default=None
+            distância entre as seções de forças cortantes máxima e nula.
+            (só é necessário caso o perfil seja uma instância da classe TuboCir)
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Vrdy.
+        Examples
         --------
-        a: 'float'
-            distância entre eixos de enrijecedores
-
-        gama_a1: 'float' (default = 1.1)
-            coeficiente de minoração da resistência.
 
         Return
         ------
-        Vrdy: 'float'
-            Força cortante resistênte de cálculo na direção y
+        Vrdy: float
+            Força cortante resistênte de cálculo na direção y.
+        Vrdy, Vrdy_dados: float, Vrdy_dados
+            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Caso data=True
         """
 
-        Vrdy_dados = namedtuple('Vrdy_dados', 'Vpl kv elp elr')
-
         if perfil.tipo != 'TUBO CIR':
+
+            Vrdy_dados = namedtuple('Vrdy_dados', 'Vpl kv elp elr')
 
             if perfil.tipo in ('I SOLDADO', 'I LAMINADO', 'U SOLDADO', 'U LAMINADO'):
 
@@ -331,8 +427,8 @@ class NBR8800:
             else:
                 kv = 1.2
 
-            elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy
-            elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy
+            elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy  # Parâmetro de esbeltez limite de plastificação
+            elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy  # Parâmetro de esbeltez limite de início de escoamento
 
             Vpl = perfil.Vply
 
@@ -349,13 +445,27 @@ class NBR8800:
                 return Vrdy if not data else (Vrdy, Vrdy_dados(Vpl, kv, elp, elr))
 
         elif perfil.tipo == 'TUBO CIR':
-            fcr1 = 1.60 * perfil.mat.E / (sqrt(a / perfil.D) * perfil.esb ** (5 / 4))
-            fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
+            return NBR8800._Vrd_tubo(perfil, Lv, gama_a1, data)
 
-            fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
+        else:
+            return NotImplementedError('Vrdy não implementado para perfis do tipo {}'.format(perfil.tipo))
 
-            Vrdy = fcr * perfil.Awy / gama_a1
-            return Vrdy if not data else (Vrdy, Vrdy_dados(fcr))
+    @staticmethod
+    def _Vrd_tubo(perfil, Lv, gama_a1, data):
+        """ Determina a força cortante resistênte de cálculo para tubos circulares"""
+
+        if Lv is None:
+            raise ValueError('Lv não fornecido')
+
+        Vrdy_dados = namedtuple('Vrdy_dados', 'fcr')
+
+        fcr1 = 1.60 * perfil.mat.E / (sqrt(Lv / perfil.D) * perfil.esb ** (5 / 4))
+        fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
+
+        fcr = max(fcr1, fcr2) if max(fcr1, fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
+
+        Vrdy = fcr * perfil.Awy / gama_a1
+        return Vrdy if not data else (Vrdy, Vrdy_dados(fcr))
 
     # MOMENTO FLETOR EM X
     # ------------
@@ -492,20 +602,27 @@ class NBR8800:
             print("ALMA ESBELTA")
 
     @staticmethod
-    def _Mn_Tubo(perfil):
+    def _Mn_Tubo(perfil, data=False):
+
+        Mrd_dados = namedtuple("Mrd_dados", "Mn elp elr")
 
         elp = 0.07 * perfil.mat.E / perfil.mat.fy
-        elr = 0.37 * perfil.mat.E / perfil.mat.fy
+        elr = 0.31 * perfil.mat.E / perfil.mat.fy
 
         if perfil.esb < elp:
-            return perfil.Mplx
+            Mn = perfil.Mplx
+            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
+
         elif elp < perfil.esb <= elr:
-            return (0.021 * perfil.mat.E / perfil.esb + perfil.mat.fy) * perfil.W
+            Mn = (0.021 * perfil.mat.E / perfil.esb + perfil.mat.fy) * perfil.W
+            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
+
         else:
-            return 0.33 * perfil.mat.E * perfil.Wx / perfil.esb
+            Mn = 0.33 * perfil.mat.E * perfil.Wx / perfil.esb
+            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
 
     @staticmethod
-    def Mrdx(perfil, Lb, gama_a1=1.1, Cb=1):
+    def Mrdx(perfil, Lb=None, gama_a1=1.1, Cb=1):
         """
         Método responsável por calcular o momento fletor resitente de cálculo para uma
         barra de comprimento Lb em relação ao eixo X do perfil, de acordo com a NBR8800.
@@ -527,19 +644,21 @@ class NBR8800:
         """
 
         if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
-            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil),
+                       1.5 * perfil.Mrx) / gama_a1
 
         elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx > perfil.Wy:
-            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil),
+                       1.5 * perfil.Mrx) / gama_a1
 
-        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx < perfil.Wy:
-            return min(NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil)) / gama_a1
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx <= perfil.Wy:
+            return min(NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil), 1.5 * perfil.Mrx) / gama_a1
 
         elif perfil.tipo in ('T LAMINADO', 'T SOLDADO'):
-            return min(NBR8800._Mnx_FLT(perfil, Cb, Lb), NBR8800._Mnx_FLA(perfil)) / gama_a1
+            return min(NBR8800._Mnx_FLT(perfil, Cb, Lb), NBR8800._Mnx_FLA(perfil), 1.5 * perfil.Mrx) / gama_a1
 
         elif perfil.tipo == 'TUBO CIR':
-            return NBR8800._Mn_Tubo(perfil) / gama_a1
+            return min(NBR8800._Mn_Tubo(perfil), 1.5 * perfil.Mrx) / gama_a1
 
     # MOMENTO FLETOR EM Y
     # ------------
@@ -633,7 +752,7 @@ class NBR8800:
         elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy > perfil.Ix:
             return min(NBR8800._Mny_FLT(perfil, Cb, Lb), NBR8800._Mny_FLM(perfil), NBR8800._Mny_FLA(perfil)) / gama_a1
 
-        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy < perfil.Ix:
+        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy <= perfil.Ix:
             return min(NBR8800._Mny_FLM(perfil), NBR8800._Mny_FLA(perfil)) / gama_a1
 
         elif perfil.tipo == 'TUBO CIR':
