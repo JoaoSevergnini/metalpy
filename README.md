@@ -21,8 +21,8 @@ o determinação da capacidade resistente podem ser utlizadas de duas formas, de
 como no exemplo a seguir:
 
 ~~~python
-from metalpy.perfis import **
-from metalpy.normas import Nbr8800
+from perfis import PerfilILam
+from normas import NBR8800
 
 #Criando um perfil W150X150 a partir da classe PerfilILam
 W150x150 = PerfilILam('W150X150', 'A350')
@@ -30,14 +30,18 @@ W150x150 = PerfilILam('W150X150', 'A350')
 #Obtendo a resistência ao momento em relação ao eixo de maior inércia
 Cb = 1
 Lb = 450
-Nbr8800.Mrdx(W150x150, Cb, Lb)
+NBR8800.Mrdx(W150x150, Cb, Lb)
 ~~~~
 
 Ou de forma indireta, passando a norma como parâmtro de inicialização do perfil,
-como demostrado abaixo:
+como demonstrado abaixo:
 
 ~~~python
-W150X150 = PerfilILam('W150X150', 'A350', norma = 'Nbr8800')
+from perfis import PerfilILam
 
+W150X150 = PerfilILam('W150X150', 'A350', norma = 'NBR8800')
+
+Cb = 1
+Lb = 450
 W150X150.Mrdx(Cb, Lb)
 ~~~

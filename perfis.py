@@ -72,35 +72,13 @@ class PerfilEstrutural(SecaoGenerica):
 
     simetria: lista de bool
         indica se a seção apresenta eixos de simetria
-
-    un: str, opcional, defaltu = None
-
-    norma: str, opcional
-        Nome na norma na qual se deseja fazer as verificações de capacidade resistente de perfil
-        O nome da norma dever ser entre os apresentados abaixo
-
-            -'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
-            -'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
-
-        Se nenhuma norma for fornecida a instância do perfil não apresentará  metodos para verificação
-        da capacidade resistênte, mas poderá ser acrescentado através do método `definir_norma()` como
-        no exemplo abaixo:
-
-        >>> from perfis import PerfilILam
-
-        # Criando um perfil laminado tipo W sem fornecer a norma
-
-        >>> W360X509 = PerfilILam('W360X509', 'MR250')
-
-        # Fornecendo a norma
-
-        >>> W360X509.definir_norma('NBR8800')
-
     """
 
     _tipos_validos = None
 
     Wxs = PropGeo('Wxs', 3)
+    Wxi = PropGeo('Wxi', 3)
+    Wys = PropGeo('Wys', 3)
     Wyi = PropGeo('Wyi', 3)
     Zx  = PropGeo('Zx', 3)
     Zy  = PropGeo('Zy', 3)
@@ -215,7 +193,7 @@ class PerfilEstrutural(SecaoGenerica):
     def indice_esbeltez(self, Lx, Ly):
         """
         Retorna o indice de esbeltez de uma barra de comprimento destravado Lb
-        formado pelo perfil em relação aos eixos X e Y
+        formado pelo perfil em relação aos eixos X e Y, respectivamente.
 
         Parameter
         ---------
@@ -324,7 +302,7 @@ class PerfilEstrutural(SecaoGenerica):
     def _validar_nome(self, nome):
         perfil = db_perfis[db_perfis['Nomes'] == nome]
 
-        str_tipo = perfil.Tipo.values[0][0]
+        str_tipo = perfil.Tipo.values[0]
 
         if str_tipo not in self._tipos_validos:
             raise ValueError('{} não é um nome válido para o perfil do tipo {}'.format(nome, self.tipo))
@@ -448,6 +426,8 @@ class PerfilI(PerfilEstrutural):
         tipo de perfil
     """
 
+    tipo = 'I SOLDADO'
+
     d = NumPositivo('d')
     bfs = NumPositivo('bfs')
     bfi = NumPositivo('bfi')
@@ -474,10 +454,10 @@ class PerfilI(PerfilEstrutural):
         self.hpl = None
 
         simetria = [True, True]
-        simetria[1] = False if bfs != bfi or tfi != tfs else True
+        simetria[0] = False if bfs != bfi or tfi != tfs else True
 
         prop_geo = self._prop_geo()
-        super().__init__(**prop_geo, mat=mat, simetria=simetria, norma=norma, tipo='I SOLDADO')
+        super().__init__(**prop_geo, mat=mat, simetria=simetria, norma=norma, tipo=self.tipo)
 
         self.Wy = self.Wys
 
@@ -541,6 +521,7 @@ class PerfilI(PerfilEstrutural):
 
         if Am_sup > Aalma + Am_inf:
 
+            # Altura da linha neutra na plastificação da seção
             ypl = self.d - (Aalma + Am_inf + Am_sup) / (2 * self.bfs)
 
             ys = (ypl + self.d) / 2
@@ -552,6 +533,7 @@ class PerfilI(PerfilEstrutural):
 
         elif Am_inf > Aalma + Am_sup:
 
+            # Altura da linha neutra na plastificação da seção
             ypl = (Aalma + Am_sup + self.bfi * self.tfi) / (2 * self.bfi)
 
             ys = (Am_sup * (self.d - self.tfs / 2) + Aalma * (self.tfi + self.dl / 2) + self.bfi * (
@@ -561,6 +543,8 @@ class PerfilI(PerfilEstrutural):
             yi = (self.tfi - ypl) / 2
 
         else:
+
+            # Altura da linha neutra na plastificação da seção
             ypl = self.dl + self.tfi - (Am_inf - Am_sup + self.tw * self.dl) / (2 * self.tw)
 
             Aalma_sup = (Aalma - self.tw * (ypl - self.tfi))
@@ -587,7 +571,7 @@ class PerfilI(PerfilEstrutural):
 
         xo = 0
 
-        h = self.d - self.tfi / 2 + self.tfs / 2
+        h = self.d - self.tfi / 2 - self.tfs / 2
         ycc = (self.d - self.tfs / 2) - h * I2y / (I1y + I2y)
         yo = ycc - ycg
 
@@ -595,7 +579,7 @@ class PerfilI(PerfilEstrutural):
         # -----------------------------
 
         C = (self.bfi * self.bfs) ** 3 / (self.bfi ** 3 + self.bfs ** 3)
-        Cw = C * (self.tfi + self.tfs) * h ** 2 / 24
+        Cw = C * (self.tfi + self.tfs) * (h ** 2) / 24
 
         self.Iys = I1y
         self.Iyi = I2y
@@ -608,29 +592,33 @@ class PerfilI(PerfilEstrutural):
 
 class PerfilILam(PerfilEstrutural):
     """
-    Está classe define um perfil do I laminado, podendo ser dos tipos W, S, H e HP
+    Está classe define um perfil do I laminado, podendo ser dos tipos W, S, H e HP.
 
     Parameter
     ---------
     nome: str
-        Nome do perfil, como nos exemplos abaixo:
+        Nome do perfil, definido da seguinte forma '(TIPO)(ALTURA DO PERFIL EM mm)X(PESO DO PERFIL EM kg/m)'
+        sendo 'tipo' um dos seguintes valores: 'W', 'HP' e 'S'
+
+        Exemplos:
+            - 'W530X85'
+            - 'HP200X53'
+            - 'S380X81.4'
     mat: `.material.Material`, list, dict, str
         material que compõe o perfil.
     und: str, default:'mm'
         unidade de medida das propriedades do perfil.
         O nome das unidades deve ser um entre os apresentados abaixo:
-
-            -'mm'
-            -'cm'
-            -'m'
-
+            - 'mm'
+            - 'cm'
+            - 'm'
         Por definição os valores da base dados estão em mm.
     norma: str, opcional
         Nome na norma na qual se deseja fazer as verificações de capacidade resistente de perfil
         O nome da norma dever ser entre os apresentados abaixo
 
-            -'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
-            -'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
+            - 'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
+            - 'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
 
     Examples
     --------
@@ -657,26 +645,18 @@ class PerfilILam(PerfilEstrutural):
         Espessura da alma
     tf: float
         Espessura da mesa
+    r: float
+        Raio de concordância
+    esb_mesa: float
+        Esbeltez da mesa
     esb_alma: float
         Esbeltez da alma
-    Iys: float
-        Momento de inércia da mesa superior em relação ao eixo y
-    Iyi: float
-        Momento de inércia da mesa inferior em relação ao eixo y
-    hcg: float
-        Altura do centro geométrico
-    hpl: float
-        Altura da linha neutra na plastificação da seção
     A: float
         Área do perfil
     Ix: float
         Momento de inércia do perfil em relação ao eixo X
     Iy: float
         Momento de inércia do perfil em relação ao eixo Y
-    Wxs: float
-        Módulo elástico superior do perfil em relação ao eixo X, para perfis monossimétricos
-    Wxi: float
-        Módulo elástico inferior do perfil em relação ao eixo X, para perfis monossimétricos
     Wx: float
         Módulo elástico em relação ao eixo X, para perfis bissimétricos.
     Wy: float
@@ -697,30 +677,20 @@ class PerfilILam(PerfilEstrutural):
         Costante de empenamento
     mat: objeto `.material.Material`
         Material que compõe o perfil
-    simetria: list de bool
+    simetria: list de bool, default: [True, True]
         Indica se existe simetria em relação aos eixos X e Y.
-
-        `True` indica a existência de simetria e `False` indica assimetria,
-        o primeiro termo da lista indica a simetria em relação ao eixo X (eixo horizontal),
-        e o segundo indica a simetria em relação ao eixo Y (eixo vertical)
-    tipo: str, default: 'I SOLDADO'
+    tipo: str, default: 'I LAMINADO'
         tipo de perfil
     """
 
     _tipos_validos = ('W', 'HP', 'S')
+    tipo = 'I LAMINADO'
 
     d = PropGeo('d', 1)
     bf = PropGeo('bf', 1)
     tf = PropGeo('tf', 1)
     tw = PropGeo('tw', 1)
     kdes = PropGeo('kdes', 1)
-    r = PropGeo('r', 1)
-    h = PropGeo('h', 1)
-    dl = PropGeo('dl', 1)
-    Wx = PropGeo('Wx', 3)
-    Wy = PropGeo('Wy', 3)
-    esb_alma = NumPositivo('esb_alma')
-    esb_mesa = NumPositivo('esb_mesa')
 
     def __init__(self, nome, mat, und='mm', norma=None):
 
@@ -733,6 +703,7 @@ class PerfilILam(PerfilEstrutural):
         self.tf = float(self._dados_perfil['tf'])
         self.tw = float(self._dados_perfil['tw'])
         self.kdes = float(self._dados_perfil['kdes'])
+
         self.r = self.kdes - self.tf
         self.h = self.d - 2 * self.tf
         self.dl = self.h - 2 * self.r
@@ -742,7 +713,7 @@ class PerfilILam(PerfilEstrutural):
 
         simetria = [True, True]
 
-        super().__init__(**self._prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo='I LAMINADO')
+        super().__init__(**self._prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo=self.tipo)
 
         self.Wx = self.Wxs
         self.Wy = self.Wys
@@ -771,21 +742,94 @@ class PerfilILam(PerfilEstrutural):
 
 class Caixao(PerfilEstrutural):
     """
-    Está classe define uma perfil caixão.
+    Está classe define um perfil soldado do tipo seção caixão retangular duplamente simétrico,
+    tendo como eixo X o eixo paralelo as mesas e eixo Y o eixo perpendicular as mesas.
 
-    Parameters
-    ----------
+    Parameter
+    ---------
     h: float
-
+        Altura total do perfil
     b: float
-
+        Largura total do perfil
     tw: float
-
+        Espessura das almas
     tf: float
+        Espessura das mesas
+    mat: `.material.Material`, list, dict, str
+        material que compõe o perfil.
+    norma: str, opcional
+        Nome na norma na qual se deseja fazer as verificações de capacidade resistente de perfil
+        O nome da norma dever ser entre os apresentados abaixo
 
-    mat: Material, list, dict, str
+            - 'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
+            - 'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
+    Examples
+    --------
+    >>> from perfis import Caixao
+    >>> from material import Aco
 
+    >>> #Definindo o aço do tipo MR250 com as propriedades em kN/cm²
+    >>> MR250 = Aco(20000, 0.3, 25, 30, 0.6)
+
+    >>> #Definindo uma seção caixão com 20cm de altura, 20cm de largura e espessura de 3.5cm
+    >>> C200x15 = Caixao(20, 20, 3.5, 3.5)
+
+    Attribute
+    ---------
+    h: float
+        Altura total do perfil
+    b: float
+        Largura total do perfil
+    tw: float
+        Espessura das almas
+    tf: float
+        Espessura das mesas
+    hint: float
+        Distância interna entre as mesas do perfil
+    bint: float
+        Distância interna entre as almas do perfil
+    esb_alma: float
+        Esbeltez das almas
+    esb_mesa: float
+        Esbeltez das mesas
+    A: float
+        Área do perfil
+    Ix: float
+        Momento de inércia do perfil em relação ao eixo X
+    Iy: float
+        Momento de inércia do perfil em relação ao eixo Y
+    Wx: float
+        Módulo elástico em relação ao eixo X.
+    Wy: float
+        Módulo elástico do perfil em relação ao eixo Y
+    Zx: float
+        Módulo plástico do perfil em relação ao eixo X
+    Zy: float
+        Módulo plástico do perfil em relação ao eixo Y
+    Awx: float
+        Área efetiva de cisalhamento paralela ao eixo X
+    Awy: float
+        Área efetiva de cisalhamento paralela ao eixo Y
+    xo: float
+        coordenada X do centro de cisalhamento em relação ao centróide da seção
+    yo: float
+        coordenada Y do centro de cisalhamento em relação ao centróide da seção
+    Cw: float
+        Costante de empenamento
+    mat: objeto `.material.Material`
+        Material que compõe o perfil
+    simetria: list de bool, default: [True, True]
+        Indica se existe simetria em relação aos eixos X e Y.
+    tipo: str, default: 'CAIXAO'
+        tipo de perfil
     """
+
+    tipo = 'CAIXAO'
+
+    h = NumPositivo('h')
+    b = NumPositivo('b')
+    tw = NumPositivo('tw')
+    tf = NumPositivo('tf')
 
     def __init__(self, h, b, tw, tf, mat, norma=None):
         self.h = h
@@ -800,12 +844,12 @@ class Caixao(PerfilEstrutural):
 
         simetria = [True, True]
 
-        super().__init__(**self.prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo='CAIXAO')
+        super().__init__(**self._prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo='CAIXAO')
 
         self.Wx = self.Wxs
         self.Wy = self.Wys
 
-    def prop_geo(self):
+    def _prop_geo(self):
         # Área (A)
         # ---------
 
@@ -868,10 +912,103 @@ class Caixao(PerfilEstrutural):
 
 class TuboRet(PerfilEstrutural):
 
-    _tipos_validos = ()
+    """
+    Esta classe define um perfil laminado do tipo tubo retangular
 
-    def __init__(self, nome, mat):
+    Parameter
+    ---------
+    nome: str
+        Nome do perfil, definido da seguinte forma:
+         '(TIPO)(ALTURA TOTAL DO PERFIL mm)X(LARGURA TOTAL EM mm)X(ESPESSURA EM mm)'
+
+        sendo 'tipo' um dos seguintes valores: 'TQ', 'TR' e 'HSS', 'TQ' e 'TR' são perfis do
+        catalogo da Vallourec e 'HSS' são perfis padronizados pela AISC.
+
+        Exemplos:
+            - 'TQ110X110X12.5'
+            - 'TR360X210X11'
+            - 'HSS508X508X22.2'
+    mat: `.material.Material`, list, dict, str
+        material que compõe o perfil.
+    und: str, default:'mm'
+        unidade de medida das propriedades do perfil.
+        O nome das unidades deve ser um entre os apresentados abaixo:
+            - 'mm'
+            - 'cm'
+            - 'm'
+        Por definição os valores da base dados estão em mm.
+    norma: str, opcional
+        Nome na norma na qual se deseja fazer as verificações de capacidade resistente de perfil
+        O nome da norma dever ser entre os apresentados abaixo
+
+            - 'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
+            - 'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
+    Examples
+    --------
+
+    Attribute
+    ---------
+    h: float
+        Altura total do perfil
+    b: float
+        Largura total do perfil
+    tw: float
+        Espessura das almas
+    tf: float
+        Espessura das mesas
+    hint: float
+        Altura plana da alma do perfil
+    bint: float
+        Largura plana das mesas do perfil
+    esb_alma: float
+        Esbeltez das almas
+    esb_mesa: float
+        Esbeltez das mesas
+    A: float
+        Área do perfil
+    Ix: float
+        Momento de inércia do perfil em relação ao eixo X
+    Iy: float
+        Momento de inércia do perfil em relação ao eixo Y
+    Wx: float
+        Módulo elástico em relação ao eixo X.
+    Wy: float
+        Módulo elástico do perfil em relação ao eixo Y
+    Zx: float
+        Módulo plástico do perfil em relação ao eixo X
+    Zy: float
+        Módulo plástico do perfil em relação ao eixo Y
+    Awx: float
+        Área efetiva de cisalhamento paralela ao eixo X
+    Awy: float
+        Área efetiva de cisalhamento paralela ao eixo Y
+    xo: float
+        coordenada X do centro de cisalhamento em relação ao centróide da seção
+    yo: float
+        coordenada Y do centro de cisalhamento em relação ao centróide da seção
+    Cw: float
+        Costante de empenamento
+    mat: objeto `.material.Material`
+        Material que compõe o perfil
+    simetria: list de bool, default: [True, True]
+        Indica se existe simetria em relação aos eixos X e Y.
+    tipo: str, default: 'TUBO RET'
+        tipo de perfil
+    """
+
+    tipo = 'TUBO RET'
+
+    _tipos_validos = ('TC', 'TR', 'HSS')
+
+    h = PropGeo('h', 1)
+    b = PropGeo('b', 1)
+    t = PropGeo('t', 1)
+
+    def __init__(self, nome, mat, und='mm', norma=None):
+
         self._validar_nome(nome)
+
+        self.und = und
 
         self.h = float(self._dados_perfil['Ht'])
         self.b = float(self._dados_perfil['B'])
@@ -886,7 +1023,7 @@ class TuboRet(PerfilEstrutural):
 
         simetria = [True, True]
 
-        super().__init__(**self.prop_geo(), mat=mat, simetria=simetria, tipo='TUBO RET')
+        super().__init__(**self.prop_geo(), mat=mat, simetria=simetria, norma=norma,  tipo=self.tipo)
 
         self.Wx = self.Wxs
         self.Wy = self.Wys
@@ -916,10 +1053,113 @@ class TuboRet(PerfilEstrutural):
 
 class TuboCir(PerfilEstrutural):
 
-    _tipo_validos = ()
+    """
+    Está classe define um perfil tubo circular
 
-    def __init__(self, nome, mat):
+    Parameter
+    ---------
+    nome: str
+        Nome do perfil, definido da seguinte forma:
+         '(TIPO)(DIÂMETRO EXTERNO DO PERFIL mm)X(ESPESSURA EM mm)', para perfis dos tipo 'TC' e 'HSS',
+         para perfis do tipo 'Pipe' consultar nomes em ...
+
+        Exemplos:
+            - 'HSS508X12.7'
+            - 'TC88.9X8'
+            - 'Pipe200XS'
+    mat: `.material.Material`, list, dict, str
+        material que compõe o perfil.
+    und: str, default:'mm'
+        unidade de medida das propriedades do perfil.
+        O nome das unidades deve ser um entre os apresentados abaixo:
+            - 'mm'
+            - 'cm'
+            - 'm'
+        Por definição os valores da base dados estão em mm.
+    norma: str, opcional
+        Nome na norma na qual se deseja fazer as verificações de capacidade resistente de perfil
+        O nome da norma dever ser entre os apresentados abaixo
+
+            - 'NBR8800' :ref: `(veja mais) <metalpy.norma._nbr8800>`
+            - 'AISC360' :ref: `(veja mais) <metalpy.norma._aisc360>`
+
+    Examples
+    --------
+    Exercicio 3.7.7 adaptado do livro ***Projeto de estruturas de Edificações com perfis Tubulates de Aço*** pag.190
+
+    >>>from perfis import TuboCir
+    >>>from material import Aco
+
+    >>>#Definição do Aço com as propriedades em kN/cm²
+    >>>A572 = Aco(20000, 0.3, 34.5, 45.0, 0.6)
+    >>>L = 800 #cm
+
+    >>>#Definindo um perfil TC323.8X6.4 (perfil catalogado mais próximo do apresentado no exercicio)
+    >>>TC320X6 = TuboCir('TC323.8X6.4', A572, 'cm', 'NBR8800')
+
+    >>>#Obtendo o momento resistênte de perfil
+    >>> TC320X6.Mrdx()
+
+    >>>#Obtendo a força cortante resistente
+    >>>TC320X6.Vrdy(400), TC320X6.Awx
+
+    Attribute
+    ---------
+    D: float
+        Diâmetro externo do perfil
+    t: float
+        Espessura do perfil
+    Dint: float
+        Diâmetro interno do perfil
+    esb: float
+        Esbeltez do perfil
+    A: float
+        Área do perfil
+    Ix: float
+        Momento de inércia do perfil em relação ao eixo X
+    Iy: float
+        Momento de inércia do perfil em relação ao eixo Y
+    Wx: float
+        Módulo elástico em relação ao eixo X.
+    Wy: float
+        Módulo elástico do perfil em relação ao eixo Y
+    Zx: float
+        Módulo plástico do perfil em relação ao eixo X
+    Zy: float
+        Módulo plástico do perfil em relação ao eixo Y
+    Awx: float
+        Área efetiva de cisalhamento paralela ao eixo X
+    Awy: float
+        Área efetiva de cisalhamento paralela ao eixo Y
+    xo: float
+        coordenada X do centro de cisalhamento em relação ao centróide da seção
+    yo: float
+        coordenada Y do centro de cisalhamento em relação ao centróide da seção
+    Cw: float
+        Costante de empenamento
+    mat: objeto `.material.Material`
+        Material que compõe o perfil
+    simetria: list de bool, default: [True, True]
+        Indica se existe simetria em relação aos eixos X e Y.
+    tipo: str, default: 'TUBO CIR'
+        tipo de perfil
+    """
+
+    tipo = 'TUBO CIR'
+
+    _tipos_validos = ('TC', 'HSS', 'PIPE')
+
+    D = PropGeo('D', 1)
+    t = PropGeo('t', 1)
+    Awx = PropGeo('Awx', 2)
+    Awy = PropGeo('Awy', 2)
+
+    esb = NumPositivo('esb')
+
+    def __init__(self, nome, mat, und='mm', norma=None):
         self._validar_nome(nome)
+
+        self.und = und
 
         self.D = float(self._dados_perfil['D'])
         self.t = float(self._dados_perfil['tdes'])
@@ -929,7 +1169,7 @@ class TuboCir(PerfilEstrutural):
 
         simetria = [True, True]
 
-        super().__init__(**self.prop_geo(), mat=mat, simetria=simetria, tipo='TUBO CIR')
+        super().__init__(**self.prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo=self.tipo)
 
         self.W = self.Wxs
 

@@ -1,34 +1,96 @@
 from math import sqrt, pi
 from collections import namedtuple
+from warnings import warn
 
 
 class AISC360:
 
-    # TRAÇÃO
-    # --------
+    """
+    Está classe apresenta os **métodos de verificação da capacidade resistênte** de perfis de aço
+    fornecidos pela norma americana **AISC360**: `Specification for structural steel buildings`, de
+    acordo com o método dos estados limites últimos **(ELU)**.
+
+    Static method
+    -------------
+    Ntrd_brt(perfil, phi_s=0.9)
+        Determina a força resistênte de tração de cálculo ao escoamento da seção bruta do perfil.
+    Ncrd(perfil, klx, kly, klz, phi_c=0.9, data=False)
+        Determina a força resistênte de compressão de cálculo de uma barra de aço.
+    Vrdx(perfil, phi_v=0.90, data=False)
+        Determina a força resistênte de cisalhamento de cálculo na direção X (Horizontal)
+    Vrdy(perfil, a=None, phi_v=0.90, data=False)
+        Determina a força resistênte de cisalhamento de cálculo na direção Y (Vertical)
+    Mrdx(perfil, Lb, Cb, theta_b=0.90, data=False)
+        Determina o momento resistênte de cálculo do perfil em relação ao eixo X (Horizontal)
+    Mrdy(perfil, Lb, Cb, theta_b=0.90, data=False)
+         Determina o momento resistênte de cálculo do perfil em relação ao eixo Y (Vertical)
+    """
 
     @staticmethod
-    def Ntrd_brt(perfil, phi_s=0.9):
-        return perfil.Afy * phi_s
+    def Ntrd_brt(perfil, phi_s=0.9, data=False):
+        """
+        Método que determina a força axial resistênte de cálculo ao escoamento da seção bruta do perfil
+        de acordo com a **AISC360-16**.
 
-    # COMPRESSÃO
-    # ----------
+        ver seção D2.(a) do capítulo D da AISC360-16
+
+        Parameter
+        ---------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        phi_s: float, default=True
+                coeficiente de segurança gama_a1
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Ntrd.
+        Examples
+        --------
+
+        Returns
+        -------
+        Ntrd: float
+            Força axial resistênte de cálculo ao escoamento da seção bruta
+        Ntrd, Ntrd_data: float, objeto Ntrd_data
+            Força axial resistênte de cálculo ao escoamento da seção bruta e dados de cálculo.
+            Caso data=True
+
+        """
+
+        warn('Item D1: A AISC360-16 recomenda que índice de esbeltez de barras tracionadas não '
+             'supere o valor de 300')
+
+        Ntrd_dados = namedtuple('Ntrd_dados', 'Ntrk A fy')
+        Ntrd = perfil.Afy * phi_s
+        return Ntrd if not data else (Ntrd, Ntrd_dados(perfil.Afy, perfil.A, perfil.mat.fy))
+
+    # -> Métodos para determinação da resistência a compressão
+    # ---------------------------------------------------------
 
     @staticmethod
     def _bef(b, c1, elr, esb, Fy, Fcr):
+        """
+        Método auxiliar para o cálculo da largura efetiva de um elemento em compressão.
+
+        Ver item seção E7 do capítulo E da AISC360:2008.
+        """
 
         if esb <= elr:
             return b
         else:
             c2 = (1 - sqrt(1 - 4 * c1)) / (2 * c1)
             Fel = (c2 * elr / esb) ** 2 * Fy
-
             bef = b * (1 - c1 * sqrt(Fel / Fcr)) * sqrt(Fel / Fcr)
-
-            return bef if bef < b else b
+            return min(bef, b)
 
     @staticmethod
     def _kc(esb):
+        """ Conforme tabela B4.1a do capítulo B da AISC360"""
+
         kc = 4 / sqrt(esb)
         kc = 0.35 if kc < 0.35 else kc
         kc = 0.76 if kc > 0.76 else kc
@@ -36,17 +98,20 @@ class AISC360:
 
     @staticmethod
     def _Aef(perfil, Fcr):
+        """ Método para a determinação a área efetiva de um perfil em compressão (Ver capítulo E da AISC360-16)"""
 
         Fy = perfil.mat.fy
 
         if perfil.tipo in ('I LAMINADO', 'U LAMINADO', 'T LAMINADO'):
+
+            # esbeltez limite da mesa
             elr_ms = 0.56 * perfil.raiz_E_fy * (Fy / Fcr)
 
+            # esbeltez limite da alma
             elr_alm = 0.75 * perfil.raiz_E_fy * (Fy / Fcr) if perfil.tipo == 'T LAMINADO' \
                 else 1.49 * perfil.raiz_E_fy * (Fy / Fcr)
 
             # largura efetiva das mesas
-            c1 = 0.22
             b = perfil.bf if perfil.tipo == 'U LAMINADO' else perfil.bf / 2
             bef_ms = AISC360._bef(b, 0.22, elr_ms, perfil.esb_mesa, Fy, Fcr)
 
@@ -60,7 +125,8 @@ class AISC360:
 
             return perfil.A - n * (b - bef_ms) * perfil.tf - (h - bef_al) * perfil.tw
 
-        if perfil.tipo == 'I SOLDADO':
+        elif perfil.tipo == 'I SOLDADO':
+
             kc = AISC360._kc(perfil.esb_alma)
             elr_ms = 0.64 * sqrt(kc) * perfil.raiz_E_fy * (Fy / Fcr)
 
@@ -73,11 +139,13 @@ class AISC360:
             # Largura efetiva da alma
             bef_alm = AISC360._bef(perfil.dl, 0.18, elr_alm, perfil.esb_alma, Fy, Fcr)
 
-            return perfil.A - (perfil.bfs - 2 * bef_mss) * perfil.tfs \
-                   - (perfil.bfi - 2 * bef_msi) * perfil.tfi \
-                   - (perfil.dl - bef_alm) * perfil.tw
+            Aef = perfil.A - (perfil.bfs - 2 * bef_mss) * perfil.tfs  - (perfil.bfi - 2 * bef_msi) * perfil.tfi \
+                - (perfil.dl - bef_alm) * perfil.tw
 
-        if perfil.tipo in ('CAIXAO', 'TUBO RET'):
+            return Aef
+
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET'):
+
             elr = 1.40 * perfil.raiz_E_fy * (Fy / Fcr) if perfil.tipo == 'TUBO RET' \
                 else 1.49 * perfil.raiz_E_fy * (Fy / Fcr)
 
@@ -86,7 +154,7 @@ class AISC360:
 
             return perfil.A - 2 * (perfil.b_int - bef_ms) * perfil.tf - 2 * (perfil.h_int - bef_alm) * perfil.tw
 
-        if perfil.tipo == 'TUBO CIR':
+        elif perfil.tipo == 'TUBO CIR':
 
             elp = 0.11 * perfil.raiz_E_fy ** 2
             elr = 0.45 * perfil.raiz_E_fy ** 2
@@ -95,13 +163,58 @@ class AISC360:
                 return perfil.A
             elif elp < perfil.esb < elr:
                 return (0.038 * perfil.raiz_E_fy ** 2 / perfil.esb + 2 / 3) * perfil.A
+            else:
+                raise ValueError('A AISC360 não prevê o uso de perfis tubulares com esbeltez maior do que 0.45*E/fy')
+
+        else:
+            raise NotImplementedError('Cálculo da Aef não implementado para perfil do tipo {}'.format(perfil.tipo))
 
     @staticmethod
     def Ncrd(perfil, klx, kly, klz, phi_c=0.9, data=False):
+        """
+        Método que determina a força axial de compressão resistênte de cálculo de uma
+        barra de aço de acordo com a **AISC360-16**.
 
-        Ncrd_dados = namedtuple('Ncrd_dados', 'Fe Fy_Fe Fcr Aef')
+        Ver seção 5.3 da NBR8800:2008.
 
-        Fe = perfil.par_estabilidade(klx, kly, klz).fe
+        Parameter
+        ----------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        klx: float
+            comprimento de flambagem por flexão em relação ao eixo x
+        kly: float
+            comprimento de flambagem por flexão em relação ao eixo Y
+        klz: float
+            comprimento de flambagem por torção em relação ao eixo
+            longitudinal Z
+        phi_c: float, default=0.9
+                coeficiente de segurança
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Ncrd.
+        Examples
+        --------
+
+        Return
+        ------
+        Ncrd: float
+            Força axial de compressão resistênte de cálculo.
+        Ncrd, Ncrd_dados: float, objeto Ncrd_dados
+            Força axial de compressão resistênte de cálculo e dados de cálculo.
+            Caso data=True
+        """
+        if max(perfil.indice_esbeltez(klx, kly)) > 200:
+            raise ValueError('Nota item E2: O índice de esbeltez de uma barra comprimida não deve ser superior a 200')
+
+        Ncrd_dados = namedtuple('Ncrd_dados', 'Ncrk A Fy Fe Fy_Fe Fcr Aef')
+
+        Fe = perfil.par_estabilidade(klx, kly, klz).fe  # Tensão crítica de flambagem
 
         Fy_Fe = perfil.mat.fy / Fe
 
@@ -112,34 +225,95 @@ class AISC360:
 
         Aef = AISC360._Aef(perfil, Fcr)
 
-        ncrd = Fcr * Aef * phi_c
+        Ncrk = Fcr * Aef
+        Ncrd = Ncrk * phi_c
 
-        return ncrd if not data else (ncrd, Ncrd_dados(Fe, Fy_Fe, Fcr, Aef))
+        return Ncrd if not data else (Ncrd, Ncrd_dados(Ncrk, perfil.A, perfil.mat.fy, Fe, Fy_Fe, Fcr, Aef))
 
     # CORTANTE
     @staticmethod
-    def Vrdx(perfil, phi_v=0.90, data=False):
+    def Vrdx(perfil, Lv=None, phi_v=0.90, data=False):
+        """
+        Método que determina a força cortante resistente de cálculo do perfil para cargas aplicadas na direção X
+        de acordo com a **AISC360-16**.
 
-        Vrdx_dados = namedtuple('Vrdx_dados', 'Vpl kv Cv2 elp elr')
+        ver capítulo G da AISC360-16.
 
-        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'T LAMINADO'):
-            kv = 1.2
+        Parameter
+        ---------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        phi_v: float, default=0.9
+                coeficiente de segurança
+        Lv: float, default=None
+            distância entre as seções de forças cortantes máxima e nula.
+            (só é necessário caso o perfil seja uma instância da classe TuboCir)
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Vrdx.
+        Examples
+        --------
+
+        Return
+        ------
+        Vrdx: float
+            Força cortante resistênte de cálculo na direção x.
+        Vrdx, Vrdx_dados: float, Vrdy_dados
+            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Caso data=True
+        """
+
+        if perfil.tipo != 'TUBO CIR':
+            Vrdx_dados = namedtuple('Vrdx_dados', 'Vpl Aw kv Cv2 elp elr')
+
+            if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'T LAMINADO'):
+                kv = 1.2
+            else:
+                kv = 5
+
+            elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy  # Parâmetro de esbeltez limite de plastificação
+            elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy  # Parâmetro de esbeltez limite de início de escoamento
+
+            if perfil.esb_mesa <= elp:
+                Cv2 = 1
+            elif elp < perfil.esb_mesa <= elr:
+                Cv2 = 1.1 * sqrt(kv) * perfil.raiz_E_fy / perfil.esb_mesa
+            else:
+                Cv2 = 1.51 * kv * perfil.raiz_E_fy ** 2 / (perfil.esb_mesa ** 2 * perfil.mat.fy)
+
+            Vrdx = perfil.Vplx * Cv2 * phi_v
+
+            return Vrdx if not data else (Vrdx, Vrdx_dados(perfil.Vplx, perfil.Awx, kv, Cv2, elr, elp))
+
+        elif perfil.tipo == 'TUBO CIR':
+
+            return AISC360._Vrd_tubo(perfil, Lv, phi_v, data)
+
         else:
-            kv = 5
+            return NotImplementedError('Vrdx não implementado para perfis do tipo {}'.format(perfil.tipo))
 
-        elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy
-        elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy
+    @staticmethod
+    def _Vrd_tubo(perfil, Lv, phi_v, data):
+        """ Determina a força cortante resistênte de cálculo para tubos circulares"""
 
-        if perfil.esb_mesa <= elp:
-            Cv2 = 1
-        elif elp < perfil.esb_mesa <= elr:
-            Cv2 = 1.1 * sqrt(kv) * perfil.raiz_E_fy / perfil.esb_mesa
-        else:
-            Cv2 = 1.51 * kv * perfil.raiz_E_fy ** 2 / (perfil.esb_mesa ** 2 * perfil.mat.fy)
+        if Lv is None:
+            raise ValueError('Lv não fornecido')
 
-        Vrdx = perfil.Vplx * Cv2 * phi_v
+        Vrd_dados = namedtuple('Vrd_dados', 'Fcr Aw')
 
-        return Vrdx if not data else (Vrdx, Vrdx_dados(perfil.Vplx, kv, Cv2, elr, elp))
+        Fcr1 = 1.60 * perfil.mat.E / (sqrt(Lv / perfil.D) * perfil.esb ** (5 / 4))
+        Fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
+
+        Fcr = max(Fcr1, Fcr2) if max(Fcr1, Fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
+
+        Vrd = Fcr * perfil.Awx * phi_v
+
+        return Vrd if not data else (Vrd, Vrd_dados(Fcr, perfil.Awx))
 
     @staticmethod
     def _Vn_perfil_IU(perfil, Cv2, a):
@@ -154,34 +328,82 @@ class AISC360:
             return Aw * (Cv2 + (1 - Cv2)) / (1.15 * (a / perfil.h + sqrt(1 + (a / perfil.h) ** 2)))
 
     @staticmethod
-    def Vrdy(perfil, a=None, phi_v=0.90):
+    def Vrdy(perfil, a=None, Lv=None, phi_v=0.90, data=False):
+        """
+        Método que determina a força cortante resistente de cálculo do perfil para cargas aplicadas na direção Y
+        de acordo com a **AISC360-16**.
 
-        Vrdy_dados = namedtuple('Vrdy_dados', 'Vpl kv Cv2 elp elr')
+        ver capítulo G da AISC360-16.
 
-        if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
-            kv = 5.34 if a is None or a / perfil.h > 3 else 5 + 5 / (a / perfil.h) ** 2
-        elif perfil.tipo in ('CAIXAO', 'TUBO RET'):
-            kv = 5.0
-        else:
-            kv = 1.2
+        Parameter
+        ---------
+        perfil: objeto PerfilEstrutural
+            perfil estrutural.
+            podendo ser um objeto de uma das seguintes classes:
+                - PerfilI
+                - PerfilILam
+                - TuboRet
+                - TuboCir
+                - Caixao
+        phi_v: float, default=0.9
+                coeficiente de segurança
+        a: float, default=None
+            distância entre enrijecedores.
+            (só é necessário caso o perfil seja uma instância das classes PerfilI, PerfilILam)
+        Lv: float, default=None
+            distância entre as seções de forças cortantes máxima e nula.
+            (só é necessário caso o perfil seja uma instância da classe TuboCir)
+        data: bool, default=False
+              Se data=True o método deve retornar os dados utilizados na obtenção de Vrdx.
+        Examples
+        --------
 
-        elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy
-        elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy
+        Return
+        ------
+        Vrdy: float
+            Força cortante resistênte de cálculo na direção y.
+        Vrdy, Vrdx_dados: float, Vrdy_dados
+            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Caso data=True
+        """
 
-        # Cálculo do Cv2
-        if perfil.esb_alma <= elp or (perfil.tipo == 'I LAMINADO' and perfil.esb_alma < 2.24 * perfil.raiz_E_fy):
-            Cv2 = 1
-            return perfil.Vply * Cv2 * phi_v
+        if perfil.tipo != 'TUBO CIR':
 
-        elif elp < perfil.esb_alma < elr:
-            Cv2 = 1.1 * sqrt(kv) * perfil.raiz_E_fy / perfil.esb_alma
-            if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO'):
-                return max(perfil.Vply * Cv2, AISC360._Vn_perfil_IU(perfil, Cv2, a)) * phi_v
+            Vrdy_dados = namedtuple('Vrdy_dados', 'Vpl kv Cv2 elp elr')
+
+            if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO', 'U SOLDADO'):
+                kv = 5.34 if a is None or a / perfil.h > 3 else 5 + 5 / (a / perfil.h) ** 2
+            elif perfil.tipo in ('CAIXAO', 'TUBO RET'):
+                kv = 5.0
             else:
-                return perfil.Vply * Cv2 * phi_v
+                kv = 1.2
+
+            elp = 1.1 * sqrt(kv) * perfil.raiz_E_fy
+            elr = 1.37 * sqrt(kv) * perfil.raiz_E_fy
+
+            # Cálculo do Cv2
+            if perfil.esb_alma <= elp or (perfil.tipo == 'I LAMINADO' and perfil.esb_alma < 2.24 * perfil.raiz_E_fy):
+                Cv2 = 1
+                Vrdy = perfil.Vply * Cv2 * phi_v
+                return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+
+            elif elp < perfil.esb_alma < elr:
+                Cv2 = 1.1 * sqrt(kv) * perfil.raiz_E_fy / perfil.esb_alma
+                if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO'):
+                    Vrdy = max(perfil.Vply * Cv2, AISC360._Vn_perfil_IU(perfil, Cv2, a)) * phi_v
+                    return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+                else:
+                    Vrdy = perfil.Vply * Cv2 * phi_v
+                    return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+            else:
+                Cv2 = 1.51 * kv * perfil.raiz_E_fy ** 2 / (perfil.esb_alma ** 2 * perfil.mat.fy)
+                Vrdy = perfil.Vply * Cv2 * phi_v
+                return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+
+        elif perfil.tipo == 'TUBO CIR':
+            return AISC360._Vrd_tubo(perfil, Lv, phi_v, data)
         else:
-            Cv2 = 1.51 * kv * perfil.raiz_E_fy ** 2 / (perfil.esb_alma ** 2 * perfil.mat.fy)
-            return perfil.Vply * Cv2 * phi_v
+            return NotImplementedError('Vrdx não implementado para perfis do tipo {}'.format(perfil.tipo))
 
     #  MOMENTO FLETOR
 
@@ -211,10 +433,10 @@ class AISC360:
                 Sxho = perfil.Wx * ho
 
                 Lr = 1.95 * rts * (E_fy / 0.7) * \
-                     sqrt(Jc / Sxho + sqrt(Jc / Sxho ** 2 + 6.76 * (0.7 / E_fy) ** 2))
+                    sqrt(Jc / Sxho + sqrt(Jc / Sxho ** 2 + 6.76 * (0.7 / E_fy) ** 2))
 
                 Fcr = Cb * pi ** 2 * perfil.mat.E / (Lb / rts) ** 2 * \
-                      sqrt(1 + 0.078 * Jc * (Lb / rts) ** 2 / Sxho)
+                    sqrt(1 + 0.078 * Jc * (Lb / rts) ** 2 / Sxho)
 
                 Mcrx = Fcr * perfil.Wx
 
@@ -222,7 +444,7 @@ class AISC360:
                 IyJ = perfil.Ix * perfil.J
                 Sx_J = perfil.Wx / perfil.J
                 Lr = 1.95 * E_fy * sqrt(IyJ) / perfil.Wx * \
-                     sqrt(2.36 * (1 / E_fy) * perfil.d * Sx_J + 1)
+                    sqrt(2.36 * (1 / E_fy) * perfil.d * Sx_J + 1)
 
                 B = 2.3 * (perfil.d / Lb) * sqrt(perfil.Iy / perfil.J)
                 Mcrx = 1.95 * perfil.mat.E * sqrt(IyJ) * (B + sqrt(1 + B ** 2)) / Lb
@@ -499,7 +721,7 @@ class AISC360:
             return AISC360._Mny_FLB(perfil) * theta_b
 
         elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy > perfil.Ix:
-            return min( AISC360._Mny_FLB(perfil), AISC360._Mny_LTB(perfil, Cb, Lb), AISC360._Mny_WLB(perfil)) * theta_b
+            return min(AISC360._Mny_FLB(perfil), AISC360._Mny_LTB(perfil, Cb, Lb), AISC360._Mny_WLB(perfil)) * theta_b
 
         elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy < perfil.Ix:
             return min(AISC360._Mny_FLB(perfil), AISC360._Mny_WLB(perfil)) * theta_b
@@ -554,7 +776,7 @@ class AISC360:
 
     @staticmethod
     def _Sex(perfil, bef):
-        """ Módulo elástico efetivo, consideranco possível flambagem local"""
+        """ Módulo elástico efetivo, considerando possível flambagem local"""
 
         # Área(A)
         # -------
@@ -578,9 +800,7 @@ class AISC360:
         dmiy = ycg - perfil.tf / 2
         da = abs(perfil.h / 2 - ycg)
 
-        Ix = Imsx + Aefm_sup * dmsy ** 2 + \
-             Imix + Am_inf * dmiy ** 2 + \
-             Iax + 2 * Aalma * da ** 2
+        Ix = (Imsx + Aefm_sup * dmsy ** 2) + (Imix + Am_inf * dmiy ** 2) + (Iax + 2 * Aalma * da ** 2)
 
         Sef = Ix / (perfil.h - ycg)
 
@@ -612,10 +832,8 @@ class AISC360:
         datx = perfil.b - perfil.tw / 2 - xcg
         dm = abs(perfil.b / 2 - xcg)
 
-        Iy = Iac + Aef_ac * dacx ** 2 + \
-             Iat + Aalma * datx ** 2 + \
-             Im + 2 * Amesa * dm ** 2
+        Iy = (Iac + Aef_ac * dacx ** 2) + (Iat + Aalma * datx ** 2) + (Im + 2 * Amesa * dm ** 2)
 
-        Sef = Iy / (xcg)
+        Sef = Iy / xcg
 
         return Sef
