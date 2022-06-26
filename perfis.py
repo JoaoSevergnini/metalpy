@@ -129,7 +129,7 @@ class PerfilEstrutural(SecaoGenerica):
         return sqrt(self.Iy / self.A)
 
     @property
-    def ro(self) -> float :
+    def ro(self) -> float:
         """ Raio de giração polar de inércia da seção em relação ao centro de cisalhamento """
         return sqrt((self.Iy + self.Ix) / self.A + self.xo ** 2 + self.yo ** 2)
 
@@ -581,8 +581,8 @@ class PerfilI(PerfilEstrutural):
         C = (self.bfi * self.bfs) ** 3 / (self.bfi ** 3 + self.bfs ** 3)
         Cw = C * (self.tfi + self.tfs) * (h ** 2) / 24
 
-        self.Iys = I1y
-        self.Iyi = I2y
+        self.Iys = I1y + Am_sup * (self.dl + self.tfs) ** 2 / 4
+        self.Iyi = I2y + Am_inf * (self.dl + self.tfi) ** 2 / 4
         self.hpl = ypl
         self.hcg = ycg
 
@@ -842,6 +842,8 @@ class Caixao(PerfilEstrutural):
         self.esb_alma = self.hint / tw
         self.esb_mesa = self.bint / tf
 
+        self.Wt = (self.b - self.tf) * (self.h - self.tw) * (self.tf + self.tw)
+
         simetria = [True, True]
 
         super().__init__(**self._prop_geo(), mat=mat, simetria=simetria, norma=norma, tipo='CAIXAO')
@@ -1003,6 +1005,7 @@ class TuboRet(PerfilEstrutural):
     h = PropGeo('h', 1)
     b = PropGeo('b', 1)
     t = PropGeo('t', 1)
+    Wt = PropGeo('Wt', 3)
 
     def __init__(self, nome, mat, und='mm', norma=None):
 
@@ -1017,6 +1020,7 @@ class TuboRet(PerfilEstrutural):
         self.t = float(self._dados_perfil['tdes'])
         self.tw = self.t
         self.tf = self.t
+        self.Wt = float(self._dados_perfil['Wt'])
 
         self.bint = self.esb_mesa * self.t
         self.hint = self.esb_alma * self.t
@@ -1153,6 +1157,7 @@ class TuboCir(PerfilEstrutural):
     t = PropGeo('t', 1)
     Awx = PropGeo('Awx', 2)
     Awy = PropGeo('Awy', 2)
+    Wt = PropGeo('Wt', 3)
 
     esb = NumPositivo('esb')
 
@@ -1164,6 +1169,7 @@ class TuboCir(PerfilEstrutural):
         self.D = float(self._dados_perfil['D'])
         self.t = float(self._dados_perfil['tdes'])
         self.esb = float(self._dados_perfil['D/t'])
+        self.Wt = float(self._dados_perfil['Wt'])
 
         self.Dint = self.D - 2 * self.t
 
