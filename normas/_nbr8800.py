@@ -27,7 +27,7 @@ class NBR8800:
     c_tensao_res = 0.7
 
     # -> Métodos para determinação da resistência a tração
-    # ---------------------------------------------------------
+    # ----------------------------------------------------
 
     @staticmethod
     def Ntrd_brt(perfil, gama_a1=1.1, data=False):
@@ -275,10 +275,13 @@ class NBR8800:
         Ne = perfil.par_estabilidade(klx, kly, klz).Ne
         ier1 = sqrt(perfil.Afy / Ne)  # índice de esbeltez reduzido Q=1
 
-        if ier1 <= 1.5:
-            Chi1 = 0.658 ** (ier1 ** 2)
+        if perfil.tipo in ('TUBO RET', 'TUBO CIR'):
+            Chi1 = 1 / ((1 + ier1 ** 4.48) ** (1 / 2.24))  # Conforme NBR16239 seção 5.2
         else:
-            Chi1 = 0.877 / ier1 ** 2
+            if ier1 <= 1.5:
+                Chi1 = 0.658 ** (ier1 ** 2)
+            else:
+                Chi1 = 0.877 / ier1 ** 2
 
         Q = NBR8800._Q(perfil, Chi1)
 
@@ -286,10 +289,14 @@ class NBR8800:
         # -----------------------------------------------
 
         ier2 = sqrt(Q * perfil.Afy / Ne)  # índice de esbeltez reduzido
-        if ier2 <= 1.5:
-            Chi2 = 0.658 ** (ier2 ** 2)
+
+        if perfil.tipo in ('TUBO RET', 'TUBO CIR'):
+            Chi2 = 1 / ((1 + ier1 ** 4.48) ** (1 / 2.24))  # Conforme NBR16239 seção 5.2
         else:
-            Chi2 = 0.877 / ier2 ** 2
+            if ier2 <= 1.5:
+                Chi2 = 0.658 ** (ier2 ** 2)
+            else:
+                Chi2 = 0.877 / ier2 ** 2
 
         Ncrk = Chi2 * Q * perfil.Afy
         Ncrd = Ncrk / gama_a1
@@ -436,12 +443,12 @@ class NBR8800:
                 Vrdy = Vpl / gama_a1
                 return Vrdy if not data else (Vrdy, Vrdy_dados(Vpl, kv, elp, elr))
 
-            elif elp < perfil.esb_mesa <= elr:
-                Vrdy = (elp / perfil.esb_mesa) * (Vpl / gama_a1)
+            elif elp < perfil.esb_alma <= elr:
+                Vrdy = (elp / perfil.esb_alma) * (Vpl / gama_a1)
                 return Vrdy if not data else (Vrdy, Vrdy_dados(Vpl, kv, elp, elr))
 
             else:
-                Vrdy = 1.24 * (elp / perfil.esb_mesa) ** 2 * (Vpl / gama_a1)
+                Vrdy = 1.24 * (elp / perfil.esb_alma) ** 2 * (Vpl / gama_a1)
                 return Vrdy if not data else (Vrdy, Vrdy_dados(Vpl, kv, elp, elr))
 
         elif perfil.tipo == 'TUBO CIR':
@@ -483,12 +490,13 @@ class NBR8800:
 
             ELU_FLT_dados = namedtuple('ELU_FLT_dados', 'esb elp elr Mn')
 
-            esb = perfil.indice_esbeltez(Lb, Lb)[0]
+            esb = perfil.indice_esbeltez(Lb, Lb)[1]
 
             # Determinação dos parâmetros necessários para determinação do momento fletor
             if perfil.tipo in ('TUBO RET', 'CAIXAO'):
-                elp = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mplx
-                elr = 2 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mry
+                JA = perfil.J * perfil.A
+                elp = 0.13 * perfil.mat.E * sqrt(JA) / perfil.Mplx
+                elr = 2 * perfil.mat.E * sqrt(JA) / (0.7 * perfil.Mrx)
 
             else:
                 elp = 1.76 * perfil.raiz_E_fy
@@ -518,12 +526,12 @@ class NBR8800:
             elif elp < esb < elr:
                 Mr = perfil.Mrx * 0.7 if not perfil.tipo == 'I LAMINADO' and not perfil.bissimetrico \
                     else min(0.7 * perfil.Wxs * perfil.mat.fy, perfil.Mrx)
-                Mn = perfil.Mplx - (perfil.Mplx - Mr) * (esb - elp) / (elr - elp)
+                Mn = min(Cb * (perfil.Mplx - (perfil.Mplx - Mr) * (esb - elp) / (elr - elp)), perfil.Mplx)
                 return Mn if not data else (Mn, ELU_FLT_dados(esb, elp, elr, Mn))
 
             elif elr < esb:
                 Me = perfil.par_estabilidade(Lb, Lb, Lb).Me
-                Mn = Cb * Me if Me < perfil.Mplx else perfil.Mplx
+                Mn = min(Cb * Me, perfil.Mplx)
                 return Mn if not data else (Mn, ELU_FLT_dados(esb, elp, elr, Mn))
 
         elif perfil.tipo in ('T LAMINADO', 'T SOLDADO'):
@@ -565,7 +573,7 @@ class NBR8800:
                 elp = 0.38 * perfil.raiz_E_fy
 
                 if perfil.tipo in ('I SOLDADO', 'U SOLDADO'):
-                    kc = 4 / sqrt(perfil.esb_alma)
+                    kc = NBR8800._kc(perfil.esb_alma)
                     elr = 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
                     Mcrx = 0.90 * perfil.mat.E * kc * perfil.Wxs / perfil.esb_mesa ** 2
                 else:
@@ -646,25 +654,25 @@ class NBR8800:
     def _Mn_Tubo(perfil, data=False):
         """ Determina o momento fletor resistente nominal para perfis tubo circulares."""
 
-        Mrd_dados = namedtuple("Mrd_dados", "Mn elp elr")
+        Mrd_dados = namedtuple("Mrd_dados", "Mn esb elp elr")
 
         elp = 0.07 * perfil.mat.E / perfil.mat.fy
         elr = 0.31 * perfil.mat.E / perfil.mat.fy
 
         if perfil.esb < elp:
             Mn = perfil.Mplx
-            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
+            return Mn if not data else (Mn, Mrd_dados(Mn, perfil.esb, elp, elr))
 
         elif elp < perfil.esb <= elr:
             Mn = (0.021 * perfil.mat.E / perfil.esb + perfil.mat.fy) * perfil.W
-            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
+            return Mn if not data else (Mn, Mrd_dados(Mn, perfil.esb, elp, elr))
 
         else:
             Mn = 0.33 * perfil.mat.E * perfil.Wx / perfil.esb
-            return Mn if not data else (Mn, Mrd_dados(Mn, elp, elr))
+            return Mn if not data else (Mn, Mrd_dados(Mn, perfil.esb, elp, elr))
 
     @staticmethod
-    def _Mnx_VAE(mat, Wxt, Wxc, bfc, tfc, hcg,  d, dl, tw, Cb, Lb, data=False):
+    def _Mnx_VAE(mat, Wxt, Wxc, bfc, tfc, hcg, d, dl, tw, Cb, Lb, data=False):
         """
         Cálculo do momento resistente em relação a X para perfis de alma esbelta
         Ver Anexo H da NBR8800:2008
@@ -678,7 +686,7 @@ class NBR8800:
         # Momento fletor resistênte para o ELU de FLT
         # -------------------------------------------
         ELU_FLT_dados = namedtuple('ELU_FLT_dados', 'esb elp elr Mn')
-        elp_FLT = 1.10 * sqrt(mat.E/mat.fy)
+        elp_FLT = 1.10 * sqrt(mat.E / mat.fy)
         elr_FLT = pi * sqrt(mat.E / (0.7 * mat.fy))
 
         A_mesa_com = bfc * tfc
@@ -689,16 +697,17 @@ class NBR8800:
 
         ryt = sqrt((Iy_mesa_com + Iy_alma_com) / (A_mesa_com + A_alma / 3))
 
-        esb = Lb/ryt
+        esb = Lb / ryt
 
         ar = A_mesa_com / A_alma
         hc = 2 * (d - tfc - hcg)
-        kpg = min(1 - ar / (1200 + 300 * ar) * (hc / tw - 5.7 * sqrt(mat.E/mat.fy)), 1)
+        kpg = min(1 - ar / (1200 + 300 * ar) * (hc / tw - 5.7 * sqrt(mat.E / mat.fy)), 1)
 
         if esb <= elp_FLT:
             Mn_FLT = kpg * Wxc * mat.fy
         elif elp_FLT > esb >= elr_FLT:
-            Mn_FLT = min(Cb * kpg * (1 - 0.3*((esb - elp_FLT)/(elr_FLT - elp_FLT))) * Wxc * mat.fy, kpg * Wxc * mat.fy)
+            Mn_FLT = min(Cb * kpg * (1 - 0.3 * ((esb - elp_FLT) / (elr_FLT - elp_FLT))) * Wxc * mat.fy,
+                         kpg * Wxc * mat.fy)
         else:
             Mn_FLT = (Cb * kpg * pi ** 2 * mat.E * Wxc / esb ** 2, kpg * Wxc * mat.fy)
 
@@ -709,13 +718,13 @@ class NBR8800:
         esb_mesa = bfc / (2 * tfc)
         elp_FLM = 0.38 * sqrt(mat.E / mat.fy)
 
-        kc = NBR8800._kc(dl/tw)
+        kc = NBR8800._kc(dl / tw)
         elr_FLM = 0.95 * sqrt(kc * mat.E / (0.7 * mat.fy))
 
         if esb_mesa <= elp_FLM:
             Mn_FLM = kpg * Wxc * mat.fy
         elif elp_FLM < esb_mesa <= elr_FLM:
-            Mn_FLM = kpg * (1 - 0.3*((esb_mesa - elp_FLM)/(elr_FLM - elp_FLM))) * Wxc * mat.fy
+            Mn_FLM = kpg * (1 - 0.3 * ((esb_mesa - elp_FLM) / (elr_FLM - elp_FLM))) * Wxc * mat.fy
         else:
             Mn_FLM = 0.90 * kpg * mat.E * kc * Wxc / esb_mesa ** 2
 
@@ -856,16 +865,16 @@ class NBR8800:
                                                                                     perfil.d, perfil.dl, perfil.tw, Cb,
                                                                                     Lb, data)
                         hcg = perfil.d - perfil.hcg
-                        Mnx2,  dados_EMT2, dados_FLT2, dados_FLM2 = NBR8800._Mnx_VAE(perfil.mat, perfil.Wxs, perfil.Wxi,
-                                                                                     perfil.bfi, perfil.tfi, hcg,
-                                                                                     perfil.d, perfil.dl, perfil.tw, Cb,
-                                                                                     Lb, data)
+                        Mnx2, dados_EMT2, dados_FLT2, dados_FLM2 = NBR8800._Mnx_VAE(perfil.mat, perfil.Wxs, perfil.Wxi,
+                                                                                    perfil.bfi, perfil.tfi, hcg,
+                                                                                    perfil.d, perfil.dl, perfil.tw, Cb,
+                                                                                    Lb, data)
                         Mrdx1 = min(Mnx1, 1.5 * perfil.Mrx) / gama_a1
                         Mrdx2 = min(Mnx2, 1.5 * perfil.Mrx) / gama_a1
 
                         return (Mrdx1, dados_EMT1, dados_FLT1, dados_FLM1), (Mrdx2, dados_EMT2, dados_EMT2, dados_FLM2)
         else:
-            raise NotImplementedError('Vrdy não implementado para perfis do tipo {}'.format(perfil.tipo))
+            raise NotImplementedError('Mrdy não implementado para perfis do tipo {}'.format(perfil.tipo))
 
     # Momento em relação ao eixo Y
     # ----------------------------
@@ -880,7 +889,7 @@ class NBR8800:
 
         ELU_FLT_dados = namedtuple('ELU_FLT_dados', 'esb elp elr Mn')
 
-        elp = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mpl
+        elp = 0.13 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mply
         elr = 2 * perfil.mat.E * sqrt(perfil.J * perfil.A) / perfil.Mry
 
         esb = perfil.indice_esbeltez(Lb, Lb)[1]
@@ -958,7 +967,7 @@ class NBR8800:
             elp = 1.12 * perfil.raiz_E_fy
             elr = 1.40 * perfil.raiz_E_fy
 
-            Wef = perfil.W  # IMPLEMENTAR Wef
+            Wef = perfil.Wy  # IMPLEMENTAR Wef
 
             Mry = Wef * perfil.mat.fy
             Mcry = Wef ** 2 * perfil.mat.fy / perfil.Wy
@@ -1142,7 +1151,7 @@ class NBR8800:
 
         return Wef
 
-    # -> Métodos para determinação do momento torsor
+    # -> Método para determinação do momento torsor
     # ----------------------------------------------
 
     @staticmethod
@@ -1167,7 +1176,7 @@ class NBR8800:
         gama_a1: 'float'
             coeficiente de minoração da resistência
         data: bool, default=False
-            Se data=True o método deve retornar os dados utilizados na obtenção de Myrd.
+            Se data=True o método deve retornar os dados utilizados na obtenção de Trd.
         Examples
         --------
 
@@ -1186,8 +1195,8 @@ class NBR8800:
 
             Trd_dados = namedtuple('Trd_dados', 'Trn1 Trn2 Trn_max esb')
 
-            Trn1 = 1.23 * perfil.Wt * perfil.mat.E / (perfil.esb ** (5/4) * sqrt(L/perfil.D))
-            Trn2 = 0.60 * perfil.Wt * perfil.mat.E / (perfil.esb ** (3/2))
+            Trn1 = 1.23 * perfil.Wt * perfil.mat.E / (perfil.esb ** (5 / 4) * sqrt(L / perfil.D))
+            Trn2 = 0.60 * perfil.Wt * perfil.mat.E / (perfil.esb ** (3 / 2))
             Trn = max(Trn1, Trn2)
 
             Trd = min(Trn, Trn_max) / gama_a1
@@ -1208,7 +1217,7 @@ class NBR8800:
                 return Trd if not data else (Trd, Trd_dados(elp, elr, esb, Trn_max))
 
             elif elp < esb <= elr:
-                Trn = Trn_max * (2.45 * perfil.raiz_E_fy) / esb
+                Trn = Trn_max * elp / esb
                 return Trn / gama_a1 if not data else (Trn / gama_a1, Trd_dados(elp, elr, esb, Trn))
 
             elif elr < esb <= 260:
@@ -1220,4 +1229,3 @@ class NBR8800:
 
         else:
             raise NotImplementedError('Trd não implementado para perfis do tipo {}'.format(perfil.tipo))
-

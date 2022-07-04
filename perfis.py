@@ -204,7 +204,7 @@ class PerfilEstrutural(SecaoGenerica):
         ------
 
         """
-        return Lx / self.ry, Ly / self.rx
+        return Lx / self.rx, Ly / self.ry
 
     def par_estabilidade(self, klx, kly, klz):
 
