@@ -295,7 +295,7 @@ class PerfilEstrutural(SecaoGenerica):
             raise ValueError('A norma {} não está implementada'.format(norma))
 
         else:
-            metodos = ('Ntrd_brt', 'Ncrd', 'Vrdx', 'Vrdy', 'Mrdx', 'Mrdy')
+            metodos = ('Ntrd_brt', 'Ncrd', 'Vrdx', 'Vrdy', 'Mrdx', 'Mrdy', 'Trd')
             for metodo in metodos:
                 self.__setattr__(metodo, MethodType(getattr(NORMAS[norma], metodo), self))
 
@@ -1020,7 +1020,7 @@ class TuboRet(PerfilEstrutural):
         self.t = float(self._dados_perfil['tdes'])
         self.tw = self.t
         self.tf = self.t
-        self.Wt = float(self._dados_perfil['Wt'])
+        self.Wt = float(self._dados_perfil['Wt']) * 1E3
 
         self.bint = self.esb_mesa * self.t
         self.hint = self.esb_alma * self.t
@@ -1043,8 +1043,8 @@ class TuboRet(PerfilEstrutural):
         Zx = float(self._dados_perfil['Zx']) * 1E3
         Zy = float(self._dados_perfil['Zy']) * 1E3
 
-        Awy = 2 * (self.h - 2 * self.t) * self.t
-        Awx = 2 * (self.b - 2 * self.t) * self.t
+        Awy = 2 * self.hint * self.t
+        Awx = 2 * self.bint * self.t
 
         xo = 0
         yo = 0
@@ -1169,7 +1169,11 @@ class TuboCir(PerfilEstrutural):
         self.D = float(self._dados_perfil['D'])
         self.t = float(self._dados_perfil['tdes'])
         self.esb = float(self._dados_perfil['D/t'])
-        self.Wt = float(self._dados_perfil['Wt'])
+
+        try:
+            self.Wt = float(self._dados_perfil['Wt']) * 1E3
+        except ValueError:
+            self.Wt = 0
 
         self.Dint = self.D - 2 * self.t
 

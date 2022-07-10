@@ -64,8 +64,7 @@ class NBR8800:
             Caso data=True
         """
 
-        warn('Item 5.2.8.1:A NBR8800:2008 recomenda que índice de esbeltez de barras tracionadas não '
-             'supere o valor de 300')
+        warn('Item 5.2.8.1:A NBR8800:2008 recomenda que índice de esbeltez de barras tracionadas não supere o valor de 300')
 
         Ntrd_dados = namedtuple('Ntrd_dados', 'Ntrk A fy')
         Ntrd = perfil.Afy / gama_a1
@@ -784,7 +783,7 @@ class NBR8800:
                 Mrdx = min(Mnx_FLT, Mnx_FLM, Mnx_FLA, 1.5 * perfil.Mrx) / gama_a1
                 return Mrdx, dados_FLT, dados_FLM, dados_FLA
 
-        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx > perfil.Wy:
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx >= perfil.Wy:
             if not data:
                 return min(NBR8800._Mnx_FLT(perfil, Lb, Cb), NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil),
                            1.5 * perfil.Mrx) / gama_a1
@@ -795,7 +794,7 @@ class NBR8800:
                 Mrdx = min(Mnx_FLT, Mnx_FLM, Mnx_FLA, 1.5 * perfil.Mrx) / gama_a1
                 return Mrdx, dados_FLT, dados_FLM, dados_FLA
 
-        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx <= perfil.Wy:
+        elif perfil.tipo in ('CAIXAO', 'TUBO RET') and perfil.Wx < perfil.Wy:
             if not data:
                 return min(NBR8800._Mnx_FLM(perfil), NBR8800._Mnx_FLA(perfil), 1.5 * perfil.Mrx) / gama_a1
             else:

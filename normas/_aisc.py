@@ -82,7 +82,7 @@ class AISC360:
         Ver item seção E7 do capítulo E da AISC360:2008.
         """
 
-        if esb <= elr:
+        if esb <= elr * sqrt(Fy/Fcr):
             return b
         else:
             c2 = (1 - sqrt(1 - 4 * c1)) / (2 * c1)
@@ -108,11 +108,10 @@ class AISC360:
         if perfil.tipo in ('I LAMINADO', 'U LAMINADO', 'T LAMINADO'):
 
             # esbeltez limite da mesa
-            elr_ms = 0.56 * perfil.raiz_E_fy * (Fy / Fcr)
+            elr_ms = 0.56 * perfil.raiz_E_fy
 
             # esbeltez limite da alma
-            elr_alm = 0.75 * perfil.raiz_E_fy * (Fy / Fcr) if perfil.tipo == 'T LAMINADO' \
-                else 1.49 * perfil.raiz_E_fy * (Fy / Fcr)
+            elr_alm = 0.75 * perfil.raiz_E_fy if perfil.tipo == 'T LAMINADO' else 1.49 * perfil.raiz_E_fy
 
             # largura efetiva das mesas
             b = perfil.bf if perfil.tipo == 'U LAMINADO' else perfil.bf / 2
@@ -131,13 +130,13 @@ class AISC360:
         elif perfil.tipo == 'I SOLDADO':
 
             kc = AISC360._kc(perfil.esb_alma)
-            elr_ms = 0.64 * sqrt(kc) * perfil.raiz_E_fy * (Fy / Fcr)
+            elr_ms = 0.64 * sqrt(kc) * perfil.raiz_E_fy
 
-            elr_alm = 1.49 * perfil.raiz_E_fy * (Fy / Fcr)
+            elr_alm = 1.49 * perfil.raiz_E_fy
 
             # Largura efetiva das mesas
-            bef_mss = AISC360._bef(perfil.bfs / 2, 0.22, elr_ms, perfil.esb_mesa_sup, Fy, Fcr)
-            bef_msi = AISC360._bef(perfil.bfi / 2, 0.22, elr_ms, perfil.esb_mesa_inf, Fy, Fcr)
+            bef_mss = AISC360._bef(perfil.bfs / 2, 0.22, elr_ms, perfil.esb_mesa_s, Fy, Fcr)
+            bef_msi = AISC360._bef(perfil.bfi / 2, 0.22, elr_ms, perfil.esb_mesa_i, Fy, Fcr)
 
             # Largura efetiva da alma
             bef_alm = AISC360._bef(perfil.dl, 0.18, elr_alm, perfil.esb_alma, Fy, Fcr)
@@ -149,13 +148,12 @@ class AISC360:
 
         elif perfil.tipo in ('CAIXAO', 'TUBO RET'):
 
-            elr = 1.40 * perfil.raiz_E_fy * (Fy / Fcr) if perfil.tipo == 'TUBO RET' \
-                else 1.49 * perfil.raiz_E_fy * (Fy / Fcr)
+            elr = 1.40 * perfil.raiz_E_fy if perfil.tipo == 'TUBO RET' else 1.49 * perfil.raiz_E_fy
 
-            bef_ms = AISC360._bef(perfil.b_int, 0.2, elr, perfil.esb_mesa, Fy, Fcr)
+            bef_ms = AISC360._bef(perfil.bint, 0.2, elr, perfil.esb_mesa, Fy, Fcr)
             bef_alm = AISC360._bef(perfil.hint, 0.2, elr, perfil.esb_alma, Fy, Fcr)
 
-            return perfil.A - 2 * (perfil.b_int - bef_ms) * perfil.tf - 2 * (perfil.h_int - bef_alm) * perfil.tw
+            return perfil.A - 2 * (perfil.bint - bef_ms) * perfil.tf - 2 * (perfil.hint - bef_alm) * perfil.tw
 
         elif perfil.tipo == 'TUBO CIR':
 
@@ -314,7 +312,7 @@ class AISC360:
         Vrd_dados = namedtuple('Vrd_dados', 'Fcr Aw')
 
         Fcr1 = 1.60 * perfil.mat.E / (sqrt(Lv / perfil.D) * perfil.esb ** (5 / 4))
-        Fcr2 = 0.78 * perfil.mat.E / perfil.esb ** 1.5
+        Fcr2 = 0.78 * perfil.mat.E / (perfil.esb ** 1.5)
 
         Fcr = max(Fcr1, Fcr2) if max(Fcr1, Fcr2) < 0.60 * perfil.mat.fy else 0.6 * perfil.mat.fy
 
@@ -393,17 +391,21 @@ class AISC360:
             # Cálculo do Cv2
             if perfil.esb_alma <= elp or (perfil.tipo == 'I LAMINADO' and perfil.esb_alma < 2.24 * perfil.raiz_E_fy):
                 Cv2 = 1
+
+                if perfil.tipo == 'I LAMINADO' and perfil.esb_alma < 2.24 * perfil.raiz_E_fy:
+                    phi_v = 1
+
                 Vrdy = perfil.Vply * Cv2 * phi_v
-                return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+                return Vrdy if not data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
 
             elif elp < perfil.esb_alma < elr:
                 Cv2 = 1.1 * sqrt(kv) * perfil.raiz_E_fy / perfil.esb_alma
                 if perfil.tipo in ('I LAMINADO', 'I SOLDADO', 'U LAMINADO'):
                     Vrdy = max(perfil.Vply * Cv2, AISC360._Vn_perfil_IU(perfil, Cv2, a)) * phi_v
-                    return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+                    return Vrdy if not data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
                 else:
                     Vrdy = perfil.Vply * Cv2 * phi_v
-                    return Vrdy if data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
+                    return Vrdy if not data else (Vrdy, Vrdy_dados(Vrdy, kv, Cv2, elp, elr))
             else:
                 Cv2 = 1.51 * kv * perfil.raiz_E_fy ** 2 / (perfil.esb_alma ** 2 * perfil.mat.fy)
                 Vrdy = perfil.Vply * Cv2 * phi_v
@@ -455,7 +457,10 @@ class AISC360:
             JA = perfil.J * perfil.A
             Lp = 0.13 * perfil.mat.E * perfil.ry * sqrt(JA) / perfil.Mplx
             Lr = 2 * perfil.mat.E * perfil.ry * sqrt(JA) / (0.7 * perfil.Mrx)
-            Mcrx = 2 * perfil.E * Cb * sqrt(JA) / (perfil.indice_esbeltez(Lb, Lb)[1])
+            try:
+                Mcrx = 2 * perfil.mat.E * Cb * sqrt(JA) / (perfil.indice_esbeltez(Lb, Lb)[1])
+            except ZeroDivisionError:
+                Mcrx = perfil.Mplx
 
         else:
             Lp = 1.76 * perfil.ry * perfil.raiz_E_fy
@@ -499,9 +504,10 @@ class AISC360:
         E_fy = perfil.raiz_E_fy ** 2
 
         ho = perfil.d - perfil.tf
+        sqrt_IyCw = sqrt(perfil.Iy * perfil.Cw)
         sqrt_Iy_Cw = sqrt(perfil.Iy / perfil.Cw)
         c = 1 if perfil.tipo == 'I LAMINADO' else (ho / 2) * sqrt_Iy_Cw
-        rts = sqrt(sqrt_Iy_Cw / perfil.Wx)
+        rts = sqrt(sqrt_IyCw / perfil.Wx)
         Jc = perfil.J * c
         Sxho = perfil.Wx * ho
 
@@ -632,7 +638,7 @@ class AISC360:
             elrf = perfil.raiz_E_fy if not perfil.tipo == 'I SOLDADO' else 0.95 * sqrt(kc / 0.7) * perfil.raiz_E_fy
 
             if perfil.tipo in ('I LAMINADO', 'T LAMINADO'):
-                Mn_ncf = perfil.Mplx - (perfil.Mplx - 0.7 * perfil.Mrx) * (perfil.esb_mesa - elpf) / (elpf - elrf)
+                Mn_ncf = perfil.Mplx - (perfil.Mplx - 0.7 * perfil.Mrx) * (perfil.esb_mesa - elpf) / (elrf - elpf)
 
                 # coeficiente para definir o Mcr
                 c_Mcr = 0.7 if perfil.tipo == 'T LAMINADO' else 0.9 * kc
@@ -642,18 +648,18 @@ class AISC360:
                 Rpc, dados = AISC360._Rpc(perfil, dados=True)
 
                 if perfil.bissimetrico and perfil.esb_alma < dados.elpw:
-                    Mn_ncf = perfil.Mplx - (perfil.Mplx - 0.7 * perfil.Mrx) * (perfil.esb_mesa - elpf) / (elpf - elrf)
+                    Mn_ncf = perfil.Mplx - (perfil.Mplx - 0.7 * perfil.Mrx) * (perfil.esb_mesa - elpf) / (elrf - elpf)
                     c_Mcr = 0.9 * kc
                 elif dados.elpw < perfil.esb_alma < dados.elrw:
                     RpcMyc = Rpc * dados.Myc
                     Fl = AISC360._Fl(perfil.mat.fy, perfil.Wxs, perfil.Wxi)
-                    Mn_ncf = RpcMyc - (RpcMyc - Fl * perfil.Wxs) * (perfil.esb_mesa_s - elpf) / (elpf - elrf)
+                    Mn_ncf = RpcMyc - (RpcMyc - Fl * perfil.Wxs) * (perfil.esb_mesa_s - elpf) / (elrf - elpf)
                     c_Mcr = 0.9 * kc
                 else:
                     hc = 2 * (perfil.d - perfil.tfs - perfil.hcg)
                     aw = min(hc * perfil.tw / (perfil.bfs * perfil.tfs), 10)
                     Rpg = AISC360._Rpg(aw, perfil.esb_alma, perfil.mat.E, perfil.mat.fy)
-                    Mn_ncf = (perfil.mat.fy - (0.3 * perfil.mat.fy) * (perfil.esb_mesa_s - elpf) / (elpf - elrf)) * Rpg\
+                    Mn_ncf = (perfil.mat.fy - (0.3 * perfil.mat.fy) * (perfil.esb_mesa_s - elpf) / (elrf - elpf)) * Rpg\
                               * perfil.Wxs
                     c_Mcr = 0.9 * Rpg * kc
 
@@ -664,20 +670,20 @@ class AISC360:
             elpf = 1.12 * perfil.raiz_E_fy
             elrf = 1.4 * perfil.raiz_E_fy if perfil.tipo == 'TUBO RET' else 1.49 * perfil.raiz_E_fy
 
-            c1 = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
-            Fy = perfil.mat.fy
-            bef = AISC360._bef(perfil.bint, c1, elrf, perfil.esb_mesa, Fy, Fy)
+            ca = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
+
+            bef = min(1.92 * perfil.tf * perfil.raiz_E_fy * (1 - ca * perfil.raiz_E_fy / perfil.esb_mesa), perfil.bint)
 
             Mn_ncf = min(perfil.Mplx - (perfil.Mplx - perfil.Mrx) * (3.57 * perfil.esb_mesa * perfil.raiz_fy_E - 4),
                          perfil.Mplx)
 
-            Mcr = perfil.mat.Fy * AISC360._Sex(perfil, bef)
+            Mcr = perfil.mat.fy * AISC360._Sex(perfil, bef)
 
         # Determinado o momento nominal referente ao estado limite de flambagem local da mesa
-        if perfil.esb_mesa >= elpf:
+        if perfil.esb_mesa <= elpf:
             Mn = perfil.Mplx
             return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mn))
-        elif elpf > perfil.esb_mesa >= elrf:
+        elif elpf < perfil.esb_mesa <= elrf:
             return Mn_ncf if not data else (Mn_ncf, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mn_ncf))
         else:
             return Mcr if not data else (Mcr, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mcr))
@@ -695,7 +701,7 @@ class AISC360:
         if perfil.tipo in ('TUBO RET', 'CAIXAO'):
 
             elpw = 2.42 * perfil.raiz_E_fy
-            elrw = 1.4 * perfil.raiz_E_fy
+            elrw = 5.7 * perfil.raiz_E_fy
 
             if perfil.esb_alma < elpw:
                 Mn = perfil.Mplx
@@ -806,7 +812,7 @@ class AISC360:
             else:
                 Mnx_LTB, dados_LTB = AISC360._Mnx_LTB(perfil, Lb, Cb, data)
                 Mnx_FLB, dados_FLB = AISC360._Mnx_FLB(perfil, data)
-                Mrdx = min(Mnx_LTB, Mnx_LTB) * theta_b
+                Mrdx = min(Mnx_LTB, Mnx_FLB) * theta_b
                 return Mrdx, dados_LTB, dados_FLB
 
         elif perfil.tipo == 'T LAMINADO':
@@ -820,7 +826,7 @@ class AISC360:
                 Mrdx = min(Mnx_LTB, Mnx_FLB, Mnx_WLB) * theta_b
                 return Mrdx, dados_LTB, dados_FLB, dados_WLB
 
-        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Ix > perfil.Iy:
+        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Ix >= perfil.Iy:
             if not data:
                 return min(AISC360._Mnx_LTB(perfil, Lb, Cb), AISC360._Mnx_FLB(perfil), AISC360._Mnx_WLB(perfil)) * \
                             theta_b
@@ -828,12 +834,12 @@ class AISC360:
                 Mnx_LTB, dados_LTB = AISC360._Mnx_LTB(perfil, Lb, Cb, data)
                 Mnx_FLB, dados_FLB = AISC360._Mnx_FLB(perfil, data)
                 Mnx_WLB, dados_WLB = AISC360._Mnx_WLB(perfil, data)
-                Mrdx = min(Mnx_LTB, Mnx_LTB, Mnx_WLB) * theta_b
+                Mrdx = min(Mnx_LTB, Mnx_FLB, Mnx_WLB) * theta_b
                 return Mrdx, dados_LTB, dados_FLB, dados_WLB
 
         elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Ix < perfil.Iy:
             if not data:
-                min(AISC360._Mnx_FLB(perfil), AISC360._Mnx_WLB(perfil)) * theta_b
+                return min(AISC360._Mnx_FLB(perfil), AISC360._Mnx_WLB(perfil)) * theta_b
             else:
                 Mnx_FLB, dados_FLB = AISC360._Mnx_FLB(perfil, data)
                 Mnx_WLB, dados_WLB = AISC360._Mnx_WLB(perfil, data)
@@ -841,7 +847,12 @@ class AISC360:
                 return Mrdx, dados_FLB, dados_WLB
 
         elif perfil.tipo == 'TUBO CIR':
-            return AISC360._Mn_Tubo(perfil) * theta_b
+            if not data:
+                return AISC360._Mn_Tubo(perfil) * theta_b
+            else:
+                Mn, dados = AISC360._Mn_Tubo(perfil, data=True)
+                Mrd = Mn * theta_b
+                return Mrd, dados
 
         else:
             NotImplementedError('Método não implementado para perfis do tipo {}'.format(perfil.tipo))
@@ -911,38 +922,46 @@ class AISC360:
             elpf = 1.12 * perfil.raiz_E_fy
             elrf = 1.4 * perfil.raiz_E_fy if perfil.tipo == 'TUBO RET' else 1.49 * perfil.raiz_E_fy
 
-            c1 = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
-            Fy = perfil.mat.fy
-            bef = AISC360._bef(perfil.bint, c1, elrf, perfil.esb_alma, Fy, Fy)
+            ca = 0.38 if perfil.tipo == 'TUBO RET' else 0.34
 
             esb = perfil.esb_alma
 
+            bef = min(1.92 * perfil.tw * perfil.raiz_E_fy * (1 - ca * perfil.raiz_E_fy / perfil.esb_alma), perfil.hint)
+
             if esb <= elpf:
-                return perfil.Mply
+                Mn = perfil.Mply
+                return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mn))
             elif elpf < esb <= elrf:
-                return min(perfil.Mply - (perfil.Mp - perfil.Mry) * (3.57 * esb * perfil.raiz_E_fy - 4), perfil.Mply)
+                Mn = min(perfil.Mply - (perfil.Mp - perfil.Mry) * (3.57 * esb * perfil.raiz_E_fy - 4), perfil.Mply)
+                return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mn))
             else:
-                return perfil.mat.Fy * AISC360._Sey(perfil, bef)
+                Mn = perfil.mat.fy * AISC360._Sey(perfil, bef)
+                return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elpf, elrf, Mn))
 
     @staticmethod
-    def _Mny_WLB(perfil):
+    def _Mny_WLB(perfil, data):
+
+        ELU_FLA_dados = namedtuple('ELU_FLA_dados', 'esb_alma, elpw, elrw, Mn')
 
         elpw = 2.42 * perfil.raiz_E_fy
-        elrw = 1.4 * perfil.raiz_E_fy
+        elrw = 5.7 * perfil.raiz_E_fy
 
-        if perfil.esb_mesa < elpw:
-            return perfil.Mply
+        if perfil.esb_mesa <= elpw:
+            Mn = perfil.Mply
+            return Mn if not data else (Mn, ELU_FLA_dados(perfil.esb_mesa, elpw, elrw, Mn))
 
-        elif elpw > perfil.esb_mesa > elrw:
-            Mn = perfil.Mply - (perfil.Mply - perfil.Mry) * (0.305 * perfil.esb_mesa * perfil.raiz_E_fy - 0.178)
-            return min(Mn, perfil.Mplx)
+        elif elpw < perfil.esb_mesa <= elrw:
+            Mn_ncw = perfil.Mply - (perfil.Mply - perfil.Mry) * (0.305 * perfil.esb_mesa * perfil.raiz_E_fy - 0.178)
+            Mn = min(Mn_ncw, perfil.Mplx)
+            return Mn if not data else (Mn, ELU_FLA_dados(perfil.esb_mesa, elpw, elrw, Mn))
 
         else:
             hc = 2 * (perfil.b / 2 - perfil.tw)
             aw = min(hc * perfil.tf / (perfil.h * perfil.tw), 10)
             Rpg = AISC360._Rpg(aw, perfil.esb_mesa, perfil.mat.E, perfil.mat.fy)
             Fcr = 0.9 * perfil.E * 4 / perfil.esb_alma ** 2
-            return min(Rpg * perfil.mat.fy * perfil.Wy, Rpg * Fcr * perfil.Wy)
+            Mn = min(Rpg * perfil.mat.fy * perfil.Wy, Rpg * Fcr * perfil.Wy)
+            return Mn if not data else (Mn, ELU_FLA_dados(perfil.esb_mesa, elpw, elrw, Mn))
 
     @staticmethod
     def Mrdy(perfil, Lb, Cb, theta_b=0.90, data=False):
@@ -986,19 +1005,19 @@ class AISC360:
             if not data:
                 return AISC360._Mny_FLB(perfil) * theta_b
             else:
-                Mny_FLB, dados_FLB = AISC360._Mnx_FLB(perfil, data)
+                Mny_FLB, dados_FLB = AISC360._Mny_FLB(perfil, data)
                 Mrdy = Mny_FLB * theta_b
                 return Mrdy, dados_FLB
 
-        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy > perfil.Ix:
+        elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy >= perfil.Ix:
             if not data:
                 return min(AISC360._Mny_FLB(perfil), AISC360._Mny_LTB(perfil, Cb, Lb), AISC360._Mny_WLB(perfil))*theta_b
             else:
-                Mny_FLB, dados_FLB = AISC360._Mny_FLB(perfil, data)
                 Mny_LTB, dados_LTB = AISC360._Mny_LTB(perfil, Lb, Cb, data)
+                Mny_FLB, dados_FLB = AISC360._Mny_FLB(perfil, data)
                 Mny_WLB, dados_WLB = AISC360._Mny_WLB(perfil, data)
                 Mrdy = min(Mny_WLB, Mny_FLB, Mny_LTB) * theta_b
-                return Mrdy, dados_FLB, dados_LTB, dados_WLB
+                return Mrdy, dados_LTB, dados_FLB, dados_WLB
 
         elif perfil.tipo in ('TUBO RET', 'CAIXAO') and perfil.Iy < perfil.Ix:
             if not data:
@@ -1009,7 +1028,7 @@ class AISC360:
                 Mrdy = min(Mny_WLB, Mny_WLB) * theta_b
                 return Mrdy, dados_FLB, dados_WLB
         else:
-            print('Método não implementado para perfis do tipo {}'.format(perfil.tipo))
+            NotImplementedError('Método não implementado para perfis do tipo {}'.format(perfil.tipo))
 
     @staticmethod
     def _Rpc(perfil, dados=False):
@@ -1200,7 +1219,7 @@ class AISC360:
 
             Fcr1 = 1.23 * perfil.mat.E / (sqrt(L/perfil.D) * perfil.esb ** (5/4))
             Fcr2 = 0.60 * perfil.mat.E / (perfil.esb ** (3/2))
-            Fcr = max(Fcr1, Fcr2)
+            Fcr = min(max(Fcr1, Fcr2), 0.6 * perfil.mat.fy)
 
             Trn = perfil.Wt * Fcr
             Trd = Trn * theta_t
@@ -1228,7 +1247,7 @@ class AISC360:
             Trn = Fcr * perfil.Wt
             Trd = Trn * theta_t
 
-            return Trd if not data else (Trd, Trd_dados(perfil.esb, elp, elr, esb, Trn))
+            return Trd if not data else (Trd, Trd_dados(elp, elr, esb, Trn))
 
         else:
             raise NotImplementedError('Trd não implementado para perfis do tipo {}'.format(perfil.tipo))
