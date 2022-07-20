@@ -27,49 +27,40 @@ class PerfilEstrutural(SecaoGenerica):
     de acordo com suas propriedades geométricas e seu material, e serve como
     base para a implementação das classes de perfis de formas específicos.
 
-    Parameter
+    Parameters
     ----------
-
     A: float
         área total da seção transversal
-
     Ix: float
         momento de inércia a flexão da seção em relação ao eixo X (horizontal)
         que passa pelo centroide da seção.
-
     Iy: float
         momento de inércia a flexão da seção em relação ao eixo Y (Vertical)
         que passa pelo centroide da seção.
-
     J: float
         constante de torção da seção em relação ao centróide da seção
-
     mat: `.material.Material`, list, dict, str
         material que compõe o perfil.
-
     Wx: float
         módulo elástico da seção em relação ao eixo X (horizontal)
-
     Wy: float
         módulo elástico da seção em relação ao eixo Y (Vertical)
-
     Zx: float,
         módulo plástico da seção em relação ao eixo X (horizontal)
-
     Zy: float
         módulo plástico da seção em relação ao eixo Y (vertical)
-
+    Awx: float
+        Área efetiva de cisalhamento em relação ao eixo X (horizontal)
+    Awy: float
+        Área efetiva de cisalhamento em relação ao eixo Y (vertical)
     xo: float, opcional
         coordenada x do centro de corte da seção trasnversal em relação ao
         centróide da seção
-
     yo: float, opcional
         coordenada y do centro de corte da seção trasnversal em relação ao
         centróide da seção
-
     Cw: float
         constante de empenamento da seção tranversal
-
     simetria: lista de bool
         indica se a seção apresenta eixos de simetria
     """
@@ -362,6 +353,10 @@ class PerfilI(PerfilEstrutural):
     ----------
     d: float
        Altura total do perfil
+    dl: float
+        Distância interna entre as mesas
+    h: float
+        Largura plana da alma
     bfs: float
        Largura da mesa superior
     bfi: float
@@ -639,6 +634,8 @@ class PerfilILam(PerfilEstrutural):
        Altura total do perfil
     dl: float
         Distância interna as mesas dos perfis
+    h: float
+        Largura plana da alma
     bf: float
        Largura da mesa
     tw: float
@@ -976,6 +973,8 @@ class TuboRet(PerfilEstrutural):
         Módulo elástico em relação ao eixo X.
     Wy: float
         Módulo elástico do perfil em relação ao eixo Y
+    Wt: float
+        Módulo de torção
     Zx: float
         Módulo plástico do perfil em relação ao eixo X
     Zy: float
@@ -1127,6 +1126,8 @@ class TuboCir(PerfilEstrutural):
         Módulo elástico em relação ao eixo X.
     Wy: float
         Módulo elástico do perfil em relação ao eixo Y
+    Wt: float
+        Módulo de torção
     Zx: float
         Módulo plástico do perfil em relação ao eixo X
     Zy: float
