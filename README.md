@@ -21,8 +21,8 @@ o determinação da capacidade resistente podem ser utlizadas de duas formas, de
 como no exemplo a seguir:
 
 ~~~python
-from perfis import PerfilILam
-from normas import NBR8800
+from metalpy.perfis import PerfilILam
+from metalpy.normas import NBR8800
 
 #Criando um perfil W150X150 a partir da classe PerfilILam
 W150x150 = PerfilILam('W150X150', 'A350')
@@ -37,7 +37,7 @@ Ou de forma indireta, passando a norma como parâmtro de inicialização do perf
 como demonstrado abaixo:
 
 ~~~python
-from perfis import PerfilILam
+from metalpy.perfis import PerfilILam
 
 W150X150 = PerfilILam('W150X150', 'A350', norma = 'NBR8800')
 

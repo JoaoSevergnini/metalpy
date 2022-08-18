@@ -1,18 +1,24 @@
 
 from math import pi, sqrt
-from util.util import PropGeo, NumPositivo
+from metalpy.util.util import PropGeo, NumPositivo
 import pandas as pd
 from collections import namedtuple
 from types import MethodType
+import os
 
-from base.secao import SecaoGenerica
-from normas import NBR8800, AISC360
-from base.material import Material, Aco
+from metalpy.secao import SecaoGenerica
+from metalpy.normas import NBR8800, AISC360
+from metalpy.material import Material, Aco
 
 #  Importando o banco de dados de perfis
-perfis_AISC = pd.read_excel('db-aisc-perfis.xlsx')
-perfis_vallourec_ret = pd.read_excel('db-vallourec-perfis.xlsx')
-perfis_vallourec_cir = pd.read_excel('db-vallourec-perfis.xlsx', 1)
+
+
+dir_path = __file__[:-9]
+
+
+perfis_AISC = pd.read_excel( dir_path + 'db-aisc-perfis.xlsx')
+perfis_vallourec_ret = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx')
+perfis_vallourec_cir = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx', 1)
 
 db_perfis = pd.concat([perfis_AISC, perfis_vallourec_cir, perfis_vallourec_ret], sort=False)
 

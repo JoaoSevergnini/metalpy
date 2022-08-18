@@ -2,20 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d855910f-8f1c-4255-ae45-9c0814c47d61" name="Default Changelist" comment="criação da mascara_laminados.py para auxilio da implementação de outros tipos de perfis e outras alterações">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/55519.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/55519.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ex_perfis_I_laminados.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/ex_perfis_I_laminados.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ex_perfis_I_soldados.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/ex_perfis_I_soldados.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ex_perfis_tubo_cir.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/ex_perfis_tubo_cir.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ex_perfis_tubo_ret.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/ex_perfis_tubo_ret.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exemplos.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/exemplos.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/EX1_I_soldado.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/EX2_I_soldado.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/EX4_I_soldado.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/EX5_I_soldado.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/EX6_I_soldado.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/img/perfil_I.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/normas/_nbr8800.py" beforeDir="false" afterPath="$PROJECT_DIR$/normas/_nbr8800.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/metalpy-0.0.1.tar.gz" beforeDir="false" afterPath="$PROJECT_DIR$/dist/metalpy-0.0.1.tar.gz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exemplos/ex_perfis_I_laminados.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/exemplos/ex_perfis_I_laminados.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exemplos/ex_perfis_I_soldados.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/exemplos/ex_perfis_I_soldados.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exemplos/ex_perfis_tubo_cir.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/exemplos/ex_perfis_tubo_cir.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exemplos/ex_perfis_tubo_ret.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/exemplos/ex_perfis_tubo_ret.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy.egg-info/SOURCES.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy.egg-info/SOURCES.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy.egg-info/requires.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy.egg-info/requires.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy/base/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy/base/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy/base/material.py" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy/base/material.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy/base/secao.py" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy/base/secao.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/metalpy/perfis/perfis.py" beforeDir="false" afterPath="$PROJECT_DIR$/metalpy/perfis/perfis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
