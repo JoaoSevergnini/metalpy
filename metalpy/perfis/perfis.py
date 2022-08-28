@@ -1,26 +1,51 @@
 
 from math import pi, sqrt
 from metalpy.util.util import PropGeo, NumPositivo
-import pandas as pd
 from collections import namedtuple
 from types import MethodType
-import os
 
 from metalpy.secao import SecaoGenerica
 from metalpy.normas import NBR8800, AISC360
 from metalpy.material import Material, Aco
 
 #  Importando o banco de dados de perfis
-
-
 dir_path = __file__[:-9]
 
+try:
 
-perfis_AISC = pd.read_excel( dir_path + 'db-aisc-perfis.xlsx')
-perfis_vallourec_ret = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx')
-perfis_vallourec_cir = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx', 1)
+    import pandas as pd
 
-db_perfis = pd.concat([perfis_AISC, perfis_vallourec_cir, perfis_vallourec_ret], sort=False)
+    perfis_AISC = pd.read_excel( dir_path + 'db-aisc-perfis.xlsx')
+    perfis_vallourec_ret = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx')
+    perfis_vallourec_cir = pd.read_excel( dir_path + 'db-vallourec-perfis.xlsx', 1)
+
+    db_perfis = pd.concat([perfis_AISC, perfis_vallourec_cir, perfis_vallourec_ret], sort=False)
+
+except ModuleNotFoundError:
+
+    import json as js
+
+    with open( dir_path + "db-aisc-perfis.json") as file:
+        perfis_AISC = js.load(file)
+
+    with open( dir_path  + "db-vallourec-perfis.json") as file:
+        perfis_vallourec = js.load(file)
+
+        perfis_vallourec_ret = perfis_vallourec["Tubos retangulares"]
+        perfis_vallourec_cir = perfis_vallourec["Tubos circulares"]
+    
+    db_perfis = perfis_AISC + perfis_vallourec_ret + perfis_vallourec_cir
+
+
+    def encontrar_perfil(nome):
+        perfil = None
+        for p in db_perfis:
+            if p['Nomes'] == nome:
+                perfil = p
+                break
+            else:
+                pass
+        return perfil
 
 NORMAS = {'NBR8800': NBR8800, 'AISC360': AISC360}
 
@@ -297,9 +322,25 @@ class PerfilEstrutural(SecaoGenerica):
                 self.__setattr__(metodo, MethodType(getattr(NORMAS[norma], metodo), self))
 
     def _validar_nome(self, nome):
-        perfil = db_perfis[db_perfis['Nomes'] == nome]
 
-        str_tipo = perfil.Tipo.values[0]
+        try:
+
+            perfil = db_perfis[db_perfis['Nomes'] == nome]
+
+            if len(perfil) == 0:
+                 raise ValueError('{} não é um nome válido para o perfil do tipo {}'.format(nome, self.tipo))
+            
+            else:
+                str_tipo = perfil.Tipo.values[0]
+ 
+        except TypeError:
+
+            perfil = encontrar_perfil(nome)
+
+            if perfil == None:
+                raise ValueError('{} não é um nome válido para o perfil do tipo {}'.format(nome, self.tipo))
+            else:   
+                str_tipo = perfil["Tipo"]
 
         if str_tipo not in self._tipos_validos:
             raise ValueError('{} não é um nome válido para o perfil do tipo {}'.format(nome, self.tipo))
