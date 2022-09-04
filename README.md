@@ -1,5 +1,6 @@
-MetalPy
-=======
+<h1 align="center">
+<img src="logo/logo_MP.svg" width="300">
+</h1><br>
 
 **MetalPy** (/metalpai/) é uma biblioteca em Python de código aberto para 
 determinação da capacidade de resistênte de perfis estruturais de aço. Esta biblioteca
@@ -23,9 +24,13 @@ como no exemplo a seguir:
 ~~~python
 from metalpy.perfis import PerfilILam
 from metalpy.normas import NBR8800
+from metalpy.material import Aco
 
-#Criando um perfil W150X150 a partir da classe PerfilILam
-W150x150 = PerfilILam('W150X150', 'A350')
+#Istância da classe Aco com propriedades em kN/cm²
+AR350 = Aco(20000, 0.3, 35, 45)
+
+#Criando uma instancia da classe PerfilILam que representa o perfil W150X150 com as propriedades em cm
+W150x150 = PerfilILam('W150X150', mat = AR350, und = 'cm')
 
 #Obtendo a resistência ao momento em relação ao eixo de maior inércia
 Cb = 1
@@ -38,8 +43,10 @@ como demonstrado abaixo:
 
 ~~~python
 from metalpy.perfis import PerfilILam
+from metalpy.material import Aco
 
-W150X150 = PerfilILam('W150X150', 'A350', norma = 'NBR8800')
+
+W150X150 = PerfilILam('W150X150', mat = AR350, und = 'cm', norma = 'NBR8800')
 
 Cb = 1
 Lb = 450

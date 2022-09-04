@@ -6,8 +6,7 @@ def IniciarSAP():
     AttachToInstance = False
 
     SpecifyPath = True
-''
-
+    
     ProgramPath = 'C:\Program Files\Computers and Structures\SAP2000 24\SAP2000.exe'
 
 

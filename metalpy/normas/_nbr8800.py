@@ -344,7 +344,7 @@ class NBR8800:
             Caso data=True
         """
 
-        if perfil.tipo in ('I SOLDADO', 'I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'TUBO RET'):
+        if perfil.tipo in ('I SOLDADO', 'I LAMINADO', 'U SOLDADO', 'U LAMINADO', 'TUBO RET', 'CAIXAO'):
 
             Vrdx_dados = namedtuple('Vrdx_dados', 'Vpl kv elp elr')
 

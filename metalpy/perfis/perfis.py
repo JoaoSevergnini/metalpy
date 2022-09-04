@@ -1,4 +1,5 @@
 
+
 from math import pi, sqrt
 from metalpy.util.util import PropGeo, NumPositivo
 from collections import namedtuple
@@ -96,6 +97,8 @@ class PerfilEstrutural(SecaoGenerica):
         indica se a seção apresenta eixos de simetria
     """
 
+    db_perfis = db_perfis
+
     _tipos_validos = None
 
     Wxs = PropGeo('Wxs', 3)
@@ -151,19 +154,19 @@ class PerfilEstrutural(SecaoGenerica):
         return sqrt(self.Iy / self.A)
 
     @property
-    def ro(self) -> float:
+    def ro(self):
         """ Raio de giração polar de inércia da seção em relação ao centro de cisalhamento """
         return sqrt((self.Iy + self.Ix) / self.A + self.xo ** 2 + self.yo ** 2)
 
     # Capacidade resistente do perfil sem consideração dos efeitos de instabilidade
 
     @property
-    def Afy(self) -> float:
+    def Afy(self):
         """ Resitência axial ao escoamento"""
         return self.A * self.mat.fy
 
     @property
-    def Afu(self) -> float:
+    def Afu(self):
         """ Resitência axial a ruptura"""
         return self.A * self.mat.fu
 
@@ -332,7 +335,7 @@ class PerfilEstrutural(SecaoGenerica):
             
             else:
                 str_tipo = perfil.Tipo.values[0]
- 
+                
         except TypeError:
 
             perfil = encontrar_perfil(nome)
@@ -347,7 +350,6 @@ class PerfilEstrutural(SecaoGenerica):
 
         else:
             self._dados_perfil = perfil
-
 
 class PerfilI(PerfilEstrutural):
     """
