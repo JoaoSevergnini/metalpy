@@ -64,8 +64,6 @@ class NBR8800:
             Caso data=True
         """
 
-        warn('Item 5.2.8.1:A NBR8800:2008 recomenda que índice de esbeltez de barras tracionadas não supere o valor de 300')
-
         Ntrd_dados = namedtuple('Ntrd_dados', 'Ntrk A fy')
         Ntrd = perfil.Afy / gama_a1
         return Ntrd if not data else (Ntrd, Ntrd_dados(perfil.Afy, perfil.A, perfil.mat.fy))
