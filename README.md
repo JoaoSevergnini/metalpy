@@ -45,7 +45,10 @@ como demonstrado abaixo:
 from metalpy.perfis import PerfilILam
 from metalpy.material import Aco
 
+#Istância da classe Aco com propriedades em kN/cm²
+AR350 = Aco(20000, 0.3, 35, 45)
 
+#Criando uma instancia da classe PerfilILam que representa o perfil W150X150 com as propriedades em cm
 W150X150 = PerfilILam('W150X150', mat = AR350, und = 'cm', norma = 'NBR8800')
 
 Cb = 1
