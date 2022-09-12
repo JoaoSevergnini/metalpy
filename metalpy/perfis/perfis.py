@@ -763,6 +763,8 @@ class PerfilILam(PerfilEstrutural):
 
         self.Wx = self.Wxs
         self.Wy = self.Wys
+        self.tfs = self.tf
+        self.tfi = self.tf
 
     def _prop_geo(self):
         """ Método que obtém as propriedades do perfil do banco de dados """

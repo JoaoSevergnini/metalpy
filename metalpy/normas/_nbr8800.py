@@ -577,14 +577,14 @@ class NBR8800:
                     elr = 0.83 * sqrt(1 / 0.7) * perfil.raiz_E_fy
                     Mcrx = 0.69 * perfil.mat.E * perfil.Wx / perfil.esb_mesa ** 2
 
-                Mrx = 0.7 * perfil.Wxs
+                Mrx = 0.7 * perfil.Mrx
 
             if perfil.esb_mesa < elp:
                 Mn = perfil.Mplx
                 return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elp, elr, Mn))
 
             elif elp < perfil.esb_mesa < elr:
-                Mn = perfil.Mplx - (perfil.Mplx - Mrx) * (perfil.esb_alma - elp) / (elr - elp)
+                Mn = perfil.Mplx - (perfil.Mplx - Mrx) * (perfil.esb_mesa- elp) / (elr - elp)
                 return Mn if not data else (Mn, ELU_FLM_dados(perfil.esb_mesa, elp, elr, Mn))
 
             elif perfil.esb_mesa > elr:
@@ -1099,33 +1099,37 @@ class NBR8800:
         """ Módulo elástico efetivo para perfis tubo retangulares e seção caixão em relação ao eixo X,
         considerando possível flambagem local"""
 
-        # Área(A)
-        # -------
-        Aefm_sup = bef * perfil.tf
-        Am_inf = perfil.bint * perfil.tf
-        Aalma = perfil.hint * perfil.tw
+        if perfil.bint > bef:
+            # Área(A)
+            # -------
+            Aefm_sup = bef * perfil.tf
+            Am_inf = perfil.bint * perfil.tf
+            Aalma = perfil.hint * perfil.tw
 
-        A = Aefm_sup + Am_inf + 2 * Aalma
+            A = Aefm_sup + Am_inf + 2 * Aalma
 
-        # Altura do centro geométrico da seção (ycg)
-        # ------------------------------------------
+            # Altura do centro geométrico da seção (ycg)
+            # ------------------------------------------
 
-        ycg = (Am_inf * perfil.tf / 2 + 2 * Aalma * (perfil.tf + perfil.h / 2)
-               + Aefm_sup * (perfil.h - perfil.tf / 2)) / A
+            ycg = (Am_inf * perfil.tf / 2 + 2 * Aalma * (perfil.tf + perfil.h / 2)
+                + Aefm_sup * (perfil.h - perfil.tf / 2)) / A
 
-        Imsx = bef * perfil.tf ** 3 / 12
-        Imix = perfil.b * perfil.tf ** 3 / 12
-        Iax = 2 * perfil.tw * perfil.hint ** 3 / 12
+            Imsx = bef * perfil.tf ** 3 / 12
+            Imix = perfil.b * perfil.tf ** 3 / 12
+            Iax = 2 * perfil.tw * perfil.hint ** 3 / 12
 
-        dmsy = perfil.h - perfil.tf / 2 - ycg
-        dmiy = ycg - perfil.tf / 2
-        da = abs(perfil.h / 2 - ycg)
+            dmsy = perfil.h - perfil.tf / 2 - ycg
+            dmiy = ycg - perfil.tf / 2
+            da = abs(perfil.h / 2 - ycg)
 
-        Ix = (Imsx + Aefm_sup * dmsy ** 2) + (Imix + Am_inf * dmiy ** 2) + (Iax + 2 * Aalma * da ** 2)
+            Ix = (Imsx + Aefm_sup * dmsy ** 2) + (Imix + Am_inf * dmiy ** 2) + (Iax + 2 * Aalma * da ** 2)
 
-        Wefx = Ix / (perfil.h - ycg)
+            Wefx = Ix / (perfil.h - ycg)
 
-        return Wefx
+            return Wefx
+        
+        else:
+            return perfil.Wx
 
     @staticmethod
     def _Wefy(perfil, bef):
@@ -1134,9 +1138,16 @@ class NBR8800:
 
         # Área(A)
         # -------
-        Aef_ac = bef * perfil.tw  # Area efetiva da alma comprimida
-        Amesa = perfil.bint * perfil.tf
-        Aalma = perfil.hint * perfil.tw
+    
+        Apef_ac = bef * perfil.tw  # Area efetiva da alma comprimida
+        Ap_mesa = perfil.bint * perfil.tf
+        Ap_alma = perfil.hint * perfil.tw
+
+        Acantos = perfil.A - 2 * (Ap_mesa + Ap_alma)
+
+        Aef_ac = Apef_ac + Acantos/4
+        Amesa = Ap_mesa + Acantos/4
+        Aalma = Ap_alma + Acantos/4
 
         A = Aef_ac + 2 * Amesa + Aalma
 
@@ -1146,8 +1157,8 @@ class NBR8800:
         xcg = (Aef_ac * perfil.tw / 2 + Aalma * (perfil.b - perfil.tw / 2)
                + 2 * Amesa * perfil.b / 2) / A
 
-        Iac = bef * perfil.tw ** 3 / 12
-        Iat = perfil.h * perfil.tf ** 3 / 12
+        Iac = (bef + perfil.tf) * perfil.tw ** 3 / 12
+        Iat = perfil.h * perfil.tw ** 3 / 12
         Im = 2 * perfil.tf * perfil.bint ** 3 / 12
 
         dacx = xcg - perfil.tw / 2

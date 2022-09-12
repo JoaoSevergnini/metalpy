@@ -503,7 +503,7 @@ class AISC360:
         Lp = 1.76 * perfil.ry * perfil.raiz_E_fy
         E_fy = perfil.raiz_E_fy ** 2
 
-        ho = perfil.d - perfil.tf
+        ho = perfil.d - perfil.tfs/2 - perfil.tfi/2
         sqrt_IyCw = sqrt(perfil.Iy * perfil.Cw)
         sqrt_Iy_Cw = sqrt(perfil.Iy / perfil.Cw)
         c = 1 if perfil.tipo == 'I LAMINADO' else (ho / 2) * sqrt_Iy_Cw
@@ -1066,7 +1066,7 @@ class AISC360:
             if esb > elpw:
                 Rpc2 = (Mp / Myc - (Mp / Myc - 1) * (esb - elpw) / (elrw - elpw))
                 Rpc = min(Rpc, Rpc2)
-            return Rpc if not dados else (Rpc, rpc_dados(elrw, elpw, Mp, Mp, Myc))
+            return Rpc if not dados else (Rpc, rpc_dados(elrw, elpw, Mp, Myc))
 
         else:
             return 1 if not dados else (1, rpc_dados(elrw, elpw, Mp, Mp, Myc))
