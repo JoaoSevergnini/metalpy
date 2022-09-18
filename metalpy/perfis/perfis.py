@@ -172,12 +172,12 @@ class PerfilEstrutural(SecaoGenerica):
 
     @property
     def Vplx(self):
-        """ Força cortante resistênte na direção X """
+        """ Força cortante resistente na direção X """
         return self.Awx * self.mat.fy * self.mat.cv
 
     @property
     def Vply(self):
-        """ Força cortante resistênte na direção Y"""
+        """ Força cortante resistente na direção Y"""
         return self.Awy * self.mat.fy * self.mat.cv
 
     @property
@@ -1151,7 +1151,7 @@ class TuboCir(PerfilEstrutural):
     >>>#Definindo um perfil TC323.8X6.4 (perfil catalogado mais próximo do apresentado no exercicio)
     >>>TC320X6 = TuboCir('TC323.8X6.4', A572, 'cm', 'NBR8800')
 
-    >>>#Obtendo o momento resistênte de perfil
+    >>>#Obtendo o momento resistente de perfil
     >>> TC320X6.Mrdx()
 
     >>>#Obtendo a força cortante resistente

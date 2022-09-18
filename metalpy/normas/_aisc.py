@@ -2,28 +2,29 @@ from math import sqrt, pi
 from collections import namedtuple
 from warnings import warn
 
+from ._norma import Norma
 
-class AISC360:
+class AISC360(Norma):
 
     """
-    Está classe apresenta os **métodos de verificação da capacidade resistênte** de perfis de aço
+    Está classe apresenta os **métodos de verificação da capacidade resistente** de perfis de aço
     fornecidos pela norma americana **AISC360**: `Specification for structural steel buildings`, de
     acordo com o método dos estados limites últimos **(ELU)**.
 
     Static method
     -------------
     Ntrd_brt(perfil, phi_s=0.9)
-        Determina a força resistênte de tração de cálculo ao escoamento da seção bruta do perfil.
+        Determina a força resistente de tração de cálculo ao escoamento da seção bruta do perfil.
     Ncrd(perfil, klx, kly, klz, phi_c=0.9, data=False)
-        Determina a força resistênte de compressão de cálculo de uma barra de aço.
+        Determina a força resistente de compressão de cálculo de uma barra de aço.
     Vrdx(perfil, phi_v=0.90, data=False)
-        Determina a força resistênte de cisalhamento de cálculo na direção X (Horizontal)
+        Determina a força resistente de cisalhamento de cálculo na direção X (Horizontal)
     Vrdy(perfil, a=None, phi_v=0.90, data=False)
-        Determina a força resistênte de cisalhamento de cálculo na direção Y (Vertical)
+        Determina a força resistente de cisalhamento de cálculo na direção Y (Vertical)
     Mrdx(perfil, Lb, Cb, phi_b=0.90, data=False)
-        Determina o momento resistênte de cálculo do perfil em relação ao eixo X (Horizontal)
+        Determina o momento resistente de cálculo do perfil em relação ao eixo X (Horizontal)
     Mrdy(perfil, Lb, Cb, phi_b=0.90, data=False)
-         Determina o momento resistênte de cálculo do perfil em relação ao eixo Y (Vertical)
+         Determina o momento resistente de cálculo do perfil em relação ao eixo Y (Vertical)
     """
 
     # -> Métodos para determinação da resistência a tração
@@ -32,7 +33,7 @@ class AISC360:
     @staticmethod
     def Ntrd_brt(perfil, phi_s=0.9, data=False):
         """
-        Método que determina a força axial resistênte de cálculo ao escoamento da seção bruta do perfil
+        Método que determina a força axial resistente de cálculo ao escoamento da seção bruta do perfil
         de acordo com a **AISC360-16**.
 
         ver seção D2.(a) do capítulo D da AISC360-16
@@ -57,9 +58,9 @@ class AISC360:
         Returns
         -------
         Ntrd: float
-            Força axial resistênte de cálculo ao escoamento da seção bruta
+            Força axial resistente de cálculo ao escoamento da seção bruta
         Ntrd, Ntrd_data: float, objeto Ntrd_data
-            Força axial resistênte de cálculo ao escoamento da seção bruta e dados de cálculo.
+            Força axial resistente de cálculo ao escoamento da seção bruta e dados de cálculo.
             Caso data=True
 
         """
@@ -173,7 +174,7 @@ class AISC360:
     @staticmethod
     def Ncrd(perfil, klx, kly, klz, phi_c=0.9, data=False):
         """
-        Método que determina a força axial de compressão resistênte de cálculo de uma
+        Método que determina a força axial de compressão resistente de cálculo de uma
         barra de aço de acordo com a **AISC360-16**.
 
         Ver seção 5.3 da NBR8800:2008.
@@ -205,9 +206,9 @@ class AISC360:
         Return
         ------
         Ncrd: float
-            Força axial de compressão resistênte de cálculo.
+            Força axial de compressão resistente de cálculo.
         Ncrd, Ncrd_dados: float, objeto Ncrd_dados
-            Força axial de compressão resistênte de cálculo e dados de cálculo.
+            Força axial de compressão resistente de cálculo e dados de cálculo.
             Caso data=True
         """
         if max(perfil.indice_esbeltez(klx, kly)) > 200:
@@ -267,9 +268,9 @@ class AISC360:
         Return
         ------
         Vrdx: float
-            Força cortante resistênte de cálculo na direção x.
+            Força cortante resistente de cálculo na direção x.
         Vrdx, Vrdx_dados: float, Vrdy_dados
-            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Força cortante resistente de cálculo na direção y e dados de cálculo.
             Caso data=True
         """
 
@@ -304,7 +305,7 @@ class AISC360:
 
     @staticmethod
     def _Vrd_tubo(perfil, Lv, phi_v, data):
-        """ Determina a força cortante resistênte de cálculo para tubos circulares"""
+        """ Determina a força cortante resistente de cálculo para tubos circulares"""
 
         if Lv is None:
             raise ValueError('Lv não fornecido')
@@ -368,9 +369,9 @@ class AISC360:
         Return
         ------
         Vrdy: float
-            Força cortante resistênte de cálculo na direção y.
+            Força cortante resistente de cálculo na direção y.
         Vrdy, Vrdx_dados: float, Vrdy_dados
-            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Força cortante resistente de cálculo na direção y e dados de cálculo.
             Caso data=True
         """
 

@@ -3,7 +3,7 @@
 </h1><br>
 
 **MetalPy** (/metalpai/) é uma biblioteca em Python de código aberto para 
-determinação da capacidade de resistênte de perfis estruturais de aço. Esta biblioteca
+determinação da capacidade de resistente de perfis estruturais de aço. Esta biblioteca
 conta com um módulo de perfis metálicos e um módulo de verificação no qual são fornecidos
 métodos de verificação da capacidade resistente dos perfis.
 

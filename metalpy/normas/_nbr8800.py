@@ -2,27 +2,28 @@ from math import sqrt, pi
 from collections import namedtuple
 from warnings import warn
 
+from ._norma import Norma
 
-class NBR8800:
+class NBR8800(Norma):
     """
-    Está classe apresenta os **métodos de verificação da capacidade resistênte** de perfis de aço
+    Está classe apresenta os **métodos de verificação da capacidade resistente** de perfis de aço
     fornecidos pela norma brasileira **NBR8800:2008**: `Projeto de estruturas de aço e de estruturas
     mistas de aço e concreto de edifícios`, de acordo com o método dos estados limites últimos **(ELU)**.
 
     Static method
     -------------
     Ntrd_brt(perfil, gama_a1=1.1)
-        Determina a força resistênte de tração de cálculo ao escoamento da seção bruta do perfil.
+        Determina a força resistente de tração de cálculo ao escoamento da seção bruta do perfil.
     Ncrd(perfil, klx, kly, klz, gama_a1=1.1, data='False')
-        Determina a força resistênte de compressão de cálculo de uma barra de aço.
+        Determina a força resistente de compressão de cálculo de uma barra de aço.
     Vrdx(perfil, gama_a1=1.1, data=False)
-        Determina a força resistênte de cisalhamento de cálculo na direção X (Horizontal)
+        Determina a força resistente de cisalhamento de cálculo na direção X (Horizontal)
     Vrdy(perfil, gama_a1=1.1, data=False)
-        Determina a força resistênte de cisalhamento de cálculo na direção Y (Vertical)
+        Determina a força resistente de cisalhamento de cálculo na direção Y (Vertical)
     Mrdx(perfil, Lb=None, Cb=1.0, gama_a1=1.1, data=False)
-        Determina o momento resistênte de cálculo do perfil em relação ao eixo X (Horizontal)
+        Determina o momento resistente de cálculo do perfil em relação ao eixo X (Horizontal)
     Mrdy(perfil, Lb=None, Cb=1.0, gama_a1=1.1, data=False)
-         Determina o momento resistênte de cálculo do perfil em relação ao eixo Y (Vertical)
+         Determina o momento resistente de cálculo do perfil em relação ao eixo Y (Vertical)
     """
     c_tensao_res = 0.7
 
@@ -32,7 +33,7 @@ class NBR8800:
     @staticmethod
     def Ntrd_brt(perfil, gama_a1=1.1, data=False):
         """
-        Método que determina a força axial resistênte de cálculo ao escoamento da seção bruta do perfil
+        Método que determina a força axial resistente de cálculo ao escoamento da seção bruta do perfil
         de acordo com a **NBR8800:2008**.
 
         Ver seção 5.2.2 da NBR8800:2008
@@ -58,9 +59,9 @@ class NBR8800:
         Return
         ------
         Ntrd: float
-            Força axial resistênte de cálculo ao escoamento da seção bruta
+            Força axial resistente de cálculo ao escoamento da seção bruta
         Ntrd, Ntrd_data: float, objeto Ntrd_data
-            Força axial resistênte de cálculo ao escoamento da seção bruta e dados de cálculo.
+            Força axial resistente de cálculo ao escoamento da seção bruta e dados de cálculo.
             Caso data=True
         """
 
@@ -185,7 +186,7 @@ class NBR8800:
 
     @staticmethod
     def _Q(perfil, chi):
-        """ Fator de redução da capacidade resistênte a compressão devido a flambagem local do perfil
+        """ Fator de redução da capacidade resistente a compressão devido a flambagem local do perfil
         (Ver anexo F da NBR8800:2008) """
 
         if perfil.tipo in ('I LAMINADO', 'U LAMINADO'):
@@ -224,7 +225,7 @@ class NBR8800:
     @staticmethod
     def Ncrd(perfil, klx, kly, klz, gama_a1=1.1, data=False):
         """
-        Método que determina a força axial de compressão resistênte de cálculo de uma
+        Método que determina a força axial de compressão resistente de cálculo de uma
         barra de aço de acordo com a **NBR8800:2008**.
 
         Ver seção 5.3 da NBR8800:2008.
@@ -256,9 +257,9 @@ class NBR8800:
         Return
         ------
         Ncrd: float
-            Força axial de compressão resistênte de cálculo.
+            Força axial de compressão resistente de cálculo.
         Ncrd, Ncrd_dados: float, objeto Ncrd_dados
-            Força axial de compressão resistênte de cálculo e dados de cálculo.
+            Força axial de compressão resistente de cálculo e dados de cálculo.
             Caso data=True
         """
         if max(perfil.indice_esbeltez(klx, kly)) > 200:
@@ -336,9 +337,9 @@ class NBR8800:
         Return
         ------
         Vrdx: float
-            Força cortante resistênte de cálculo na direção x.
+            Força cortante resistente de cálculo na direção x.
         Vrdx, Vrdx_dados: float, Vrdx_dados
-            Força cortante resistênte de cálculo na direção x e dados de cálculo.
+            Força cortante resistente de cálculo na direção x e dados de cálculo.
             Caso data=True
         """
 
@@ -408,9 +409,9 @@ class NBR8800:
         Return
         ------
         Vrdy: float
-            Força cortante resistênte de cálculo na direção y.
+            Força cortante resistente de cálculo na direção y.
         Vrdy, Vrdy_dados: float, Vrdy_dados
-            Força cortante resistênte de cálculo na direção y e dados de cálculo.
+            Força cortante resistente de cálculo na direção y e dados de cálculo.
             Caso data=True
         """
 
@@ -456,7 +457,7 @@ class NBR8800:
 
     @staticmethod
     def _Vrd_tubo(perfil, Lv, gama_a1, data):
-        """ Determina a força cortante resistênte de cálculo para tubos circulares"""
+        """ Determina a força cortante resistente de cálculo para tubos circulares"""
 
         if Lv is None:
             raise ValueError('Lv não fornecido')
@@ -675,12 +676,12 @@ class NBR8800:
         Ver Anexo H da NBR8800:2008
         """
 
-        # Momento fletor resistênte para o escoamento da mesa tracionada
+        # Momento fletor resistente para o escoamento da mesa tracionada
         # --------------------------------------------------------------
         ELU_EMT_dados = namedtuple('ELU_EMT_dados', 'Wxt Mn')
         Mn_EMT = Wxt * mat.fy
 
-        # Momento fletor resistênte para o ELU de FLT
+        # Momento fletor resistente para o ELU de FLT
         # -------------------------------------------
         ELU_FLT_dados = namedtuple('ELU_FLT_dados', 'esb elp elr Mn')
         elp_FLT = 1.10 * sqrt(mat.E / mat.fy)
@@ -708,7 +709,7 @@ class NBR8800:
         else:
             Mn_FLT = (Cb * kpg * pi ** 2 * mat.E * Wxc / esb ** 2, kpg * Wxc * mat.fy)
 
-        # Momento fletor resistênte para o ELU de FLM
+        # Momento fletor resistente para o ELU de FLM
         # -------------------------------------------
         ELU_FLM_dados = namedtuple('ELU_FLM_dados', 'esb_mesa elp elr Mn')
 
