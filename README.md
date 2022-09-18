@@ -17,7 +17,7 @@ O módulo de perfis metálicos conta com perfis dos tipos:
  
 
 O módulo para verificação dos perfis de aço conta com a norma brasileira *NBR8800* e 
-a norma americana *AISC360*, e possibilita a determinação da capacidade reistênte 
+a norma americana *AISC360*, e possibilita a determinação da capacidade resistente 
 dos perfis de acordo com o métodos dos estados limites últimos. As funções que permitem
 o determinação da capacidade resistente podem ser utlizadas de duas formas, de forma direta
 como no exemplo a seguir:
@@ -34,9 +34,7 @@ AR350 = Aco(20000, 0.3, 35, 45)
 W150x150 = PerfilILam('W150X150', mat = AR350, und = 'cm')
 
 #Obtendo a resistência ao momento em relação ao eixo de maior inércia
-Cb = 1
-Lb = 450
-NBR8800.Mrdx(W150x150, Cb, Lb)
+NBR8800.Mrdx(W150x150, Lb=450, Cb=1)
 ~~~~
 
 Ou de forma indireta, passando a norma como parâmtro de inicialização do perfil,
@@ -52,7 +50,5 @@ AR350 = Aco(20000, 0.3, 35, 45)
 #Criando uma instancia da classe PerfilILam que representa o perfil W150X150 com as propriedades em cm
 W150X150 = PerfilILam('W150X150', mat = AR350, und = 'cm', norma = 'NBR8800')
 
-Cb = 1
-Lb = 450
-W150X150.Mrdx(Cb, Lb)
+W150X150.Mrdx(Lb = 450, Cb = 1)
 ~~~
