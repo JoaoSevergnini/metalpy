@@ -9,11 +9,12 @@ métodos de verificação da capacidade resistente dos perfis.
 
 O módulo de perfis metálicos conta com perfis dos tipos:
 
- * I laminado (W, H, HP) (Ver ...)
- * I soldados (Ver .. )
- * Seção caixão (Ver ...)
- * Tubos retangulares (Ver ...)
- * Tubos circulares (ver ... )
+ * I laminado (W, H, HP) (Ver [exemplos I laminados](https://github.com/JoaoSevergnini/metalpy/blob/225947b5dbb88ca434fa805328f1327cdd05c037/exemplos/ex_perfis_I_laminados.ipynb))
+ * I soldados (Ver  [exemplos I soldados](exemplos/ex_perfis_I_soldados.ipynb) )
+ * Seção caixão
+ * Tubos retangulares (Ver [exemplos tubo retangulares](exemplos/ex_perfis_tubo_ret.ipynb))
+ * Tubos circulares (ver [exemplos tubo circulares](exemplos/ex_perfis_tubo_cir.ipynb) )
+ 
 
 O módulo para verificação dos perfis de aço conta com a norma brasileira *NBR8800* e 
 a norma americana *AISC360*, e possibilita a determinação da capacidade reistênte 
@@ -45,7 +46,10 @@ como demonstrado abaixo:
 from metalpy.perfis import PerfilILam
 from metalpy.material import Aco
 
+#Istância da classe Aco com propriedades em kN/cm²
+AR350 = Aco(20000, 0.3, 35, 45)
 
+#Criando uma instancia da classe PerfilILam que representa o perfil W150X150 com as propriedades em cm
 W150X150 = PerfilILam('W150X150', mat = AR350, und = 'cm', norma = 'NBR8800')
 
 Cb = 1
